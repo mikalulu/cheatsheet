@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>macOS CLI MITSUKETE++COPIPE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
+  :root { --bg:#0a0c0f; --panel:#0f1318; --border:#1e2530; --text:#c8d0dc; --dim:#5a6478; --accent:#a78bfa; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;padding:16px;min-height:100vh;}
+
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  h1{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--accent);text-transform:uppercase;white-space:nowrap;}
+  .search-wrap{flex:1;position:relative;}
+  .search-wrap input{width:100%;background:#0f1318;border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 10px 6px 28px;outline:none;transition:border-color .15s;}
+  .search-wrap input:focus{border-color:var(--accent);}
+  .search-wrap::before{content:'⌕';position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:14px;pointer-events:none;}
+  .no-results{color:var(--dim);padding:40px;text-align:center;display:none;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .section.hidden{display:none;}
+  .section-header{padding:8px 14px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;}
+  .s0 .section-header{background:rgba(0,212,170,.08);color:#00d4aa;border-bottom:1px solid rgba(0,212,170,.2);}
+  .s1 .section-header{background:rgba(255,107,53,.08);color:#ff6b35;border-bottom:1px solid rgba(255,107,53,.2);}
+  .s2 .section-header{background:rgba(123,140,222,.08);color:#7b8cde;border-bottom:1px solid rgba(123,140,222,.2);}
+  .s3 .section-header{background:rgba(232,197,71,.08);color:#e8c547;border-bottom:1px solid rgba(232,197,71,.2);}
+  .s4 .section-header{background:rgba(180,100,255,.08);color:#b464ff;border-bottom:1px solid rgba(180,100,255,.2);}
+  .s5 .section-header{background:rgba(0,180,255,.08);color:#00b4ff;border-bottom:1px solid rgba(0,180,255,.2);}
+  .s6 .section-header{background:rgba(255,200,0,.08);color:#ffc800;border-bottom:1px solid rgba(255,200,0,.2);}
+  .s7 .section-header{background:rgba(80,220,120,.08);color:#50dc78;border-bottom:1px solid rgba(80,220,120,.2);}
+  .s8 .section-header{background:rgba(255,80,160,.08);color:#ff50a0;border-bottom:1px solid rgba(255,80,160,.2);}
+
+  .section-body{padding:10px 0;}
+  .group{margin-bottom:10px;}
+  .group.hidden{display:none;}
+  .group-label{color:var(--dim);font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:0 14px 4px;}
+  .divider{height:1px;background:var(--border);margin:6px 14px;}
+
+  .cmd{padding:3px 14px;transition:background .1s;cursor:default;}
+  .cmd:hover{background:rgba(255,255,255,.04);}
+  .cmd.has-vars{cursor:pointer;}
+  .cmd.expanded{background:rgba(255,255,255,.03);}
+  .cmd.hidden{display:none;}
+  .cmd-row{display:flex;align-items:flex-start;gap:8px;}
+  .cmd-text{flex:1;color:#e0e8f0;word-break:break-all;white-space:pre-wrap;}
+  .cmd-text .var{color:#ff6b35;border-bottom:1px dashed rgba(255,107,53,.4);}
+  .cmd-text .flag{color:#7b8cde;}
+  .cmd-text mark{background:rgba(232,197,71,.25);color:#e8c547;border-radius:2px;}
+  .cmd-note{color:var(--dim);font-size:10px;min-width:140px;text-align:right;padding-top:1px;flex-shrink:0;}
+  .copy-btn{background:none;border:none;color:var(--dim);cursor:pointer;padding:0 2px;font-size:11px;transition:color .15s;flex-shrink:0;}
+  .copy-btn:hover{color:var(--accent);}
+  .copy-btn.copied{color:var(--accent);}
+
+  .var-form{display:none;margin-top:6px;padding:8px 10px;background:rgba(0,0,0,.3);border-radius:4px;border:1px solid var(--border);}
+  .cmd.expanded .var-form{display:block;}
+  .var-fields{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .var-field{display:flex;align-items:center;gap:4px;}
+  .var-label{color:#ff6b35;font-size:11px;white-space:nowrap;}
+  .var-input{background:#0a0c0f;border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 6px;width:120px;outline:none;transition:border-color .15s;}
+  .var-input:focus{border-color:#ff6b35;}
+  .var-paste-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:10px;padding:2px 5px;transition:all .15s;}
+  .var-paste-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .form-actions{display:flex;gap:6px;align-items:center;}
+  .form-copy-btn{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:3px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;transition:all .15s;}
+  .form-copy-btn:hover{background:rgba(0,212,170,.2);}
+  .form-copy-btn.copied{background:rgba(0,212,170,.2);color:#fff;}
+  .form-reset-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:11px;padding:4px 8px;transition:all .15s;}
+  .form-reset-btn:hover{border-color:var(--dim);color:var(--text);}
+  .preview-text{flex:1;color:var(--dim);font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>macOS CLI MITSUKETE++COPIPE</h1>
+  <div class="search-wrap"><input type="text" id="search" placeholder="コマンド・注釈・セクションを検索..." autocomplete="off" spellcheck="false"></div>
+</div>
+<div class="no-results" id="noResults">一致するコマンドが見つかりません</div>
+<div class="grid" id="grid"></div>
+<script>
+const data = [
+  { name: "OSASCRIPT", groups: [
+    { label: "ダイアログ / 通知", cmds: [
+      { cmd: "osascript -e 'display notification \"<MSG>\" with title \"<TITLE>\"'", note: "通知センターに表示" },
+      { cmd: "osascript -e 'display notification \"<MSG>\" with title \"<TITLE>\" subtitle \"<SUB>\" sound name \"Glass\"'", note: "サウンド付き通知" },
+      { cmd: "osascript -e 'display dialog \"<MSG>\"'", note: "OKダイアログ" },
+      { cmd: "osascript -e 'display dialog \"<MSG>\" buttons {\"Cancel\", \"OK\"} default button \"OK\"'", note: "確認ダイアログ" },
+      { cmd: "osascript -e 'display dialog \"<PROMPT>\" default answer \"\" with hidden answer'", note: "パスワード入力ダイアログ" },
+      { cmd: "osascript -e 'set v to text returned of (display dialog \"<PROMPT>\" default answer \"\")' -e 'return v'", note: "テキスト入力→stdout" },
+    ]},
+    { label: "アプリ操作", cmds: [
+      { cmd: "osascript -e 'tell application \"<APP>\" to activate'", note: "アプリをフォアグラウンドに" },
+      { cmd: "osascript -e 'tell application \"<APP>\" to quit'", note: "アプリを終了" },
+      { cmd: "osascript -e 'tell application \"System Events\" to keystroke \"<KEY>\" using command down'", note: "Cmd+<KEY>を送る" },
+      { cmd: "osascript -e 'tell application \"System Events\" to key code 36'", note: "Enterキー送信(key code)" },
+      { cmd: "osascript -e 'tell application \"Finder\" to open POSIX file \"<PATH>\"'", note: "FinderでPATHを開く" },
+      { cmd: "osascript -e 'tell application \"Terminal\" to do script \"<CMD>\"'", note: "Terminalで新規シェル実行" },
+    ]},
+    { label: "クリップボード", cmds: [
+      { cmd: "osascript -e 'set the clipboard to \"<TEXT>\"'", note: "文字列をクリップボードに" },
+      { cmd: "osascript -e 'get the clipboard'", note: "クリップボード内容を取得" },
+      { cmd: "echo \"<TEXT>\" | pbcopy", note: "pbcopyでコピー" },
+      { cmd: "pbpaste", note: "pbpasteで貼り付け" },
+      { cmd: "pbpaste | pbcopy", note: "書式なし→再コピー" },
+    ]},
+    { label: "Finder / システム情報", cmds: [
+      { cmd: "osascript -e 'tell application \"Finder\" to get name of every disk'", note: "マウント済みディスク一覧" },
+      { cmd: "osascript -e 'tell application \"Finder\" to empty trash'", note: "ゴミ箱を空に" },
+      { cmd: "osascript -e 'tell application \"System Events\" to get name of every process whose background only is false'", note: "フォアグラウンドプロセス一覧" },
+      { cmd: "osascript -e 'tell application \"System Events\" to set volume output volume <N>'", note: "音量設定(0-100)" },
+      { cmd: "osascript -e 'tell application \"System Events\" to get volume settings'", note: "現在の音量確認" },
+    ]},
+  ]},
+
+  { name: "XATTR / ACL", groups: [
+    { label: "xattr 確認 / 操作", cmds: [
+      { cmd: "xattr <FILE>", note: "拡張属性キー一覧" },
+      { cmd: "xattr -l <FILE>", note: "拡張属性すべて表示" },
+      { cmd: "xattr -p com.apple.quarantine <FILE>", note: "quarantine属性を読む" },
+      { cmd: "xattr -d com.apple.quarantine <FILE>", note: "quarantine属性を削除" },
+      { cmd: "xattr -d com.apple.quarantine -r <DIR>/", note: "ディレクトリ再帰で削除" },
+      { cmd: "xattr -c <FILE>", note: "全拡張属性を削除" },
+      { cmd: "xattr -w com.apple.metadata:kMDItemComment \"<COMMENT>\" <FILE>", note: "Spotlightコメントを書き込む" },
+      { cmd: "xattr -w com.apple.FinderInfo '' <FILE>", note: "Finder情報を書き込む" },
+    ]},
+    { label: "ACL (chmod +a)", cmds: [
+      { cmd: "ls -le <FILE>", note: "ACLエントリ付きで表示" },
+      { cmd: "chmod +a \"<USER> allow read,write\" <FILE>", note: "ユーザにread/write ACL追加" },
+      { cmd: "chmod +a \"<GROUP> allow read\" <FILE>", note: "グループにread ACL追加" },
+      { cmd: "chmod -a \"<USER> allow read,write\" <FILE>", note: "ACLエントリ削除" },
+      { cmd: "chmod -N <FILE>", note: "全ACLを削除" },
+      { cmd: "chmod -RN <DIR>/", note: "ディレクトリ再帰で全ACL削除" },
+    ]},
+  ]},
+
+  { name: "DEFAULTS (plist)", groups: [
+    { label: "読み書き", cmds: [
+      { cmd: "defaults read <DOMAIN>", note: "ドメイン全設定を読む" },
+      { cmd: "defaults read <DOMAIN> <KEY>", note: "特定キーを読む" },
+      { cmd: "defaults write <DOMAIN> <KEY> -bool true", note: "bool値を書き込む" },
+      { cmd: "defaults write <DOMAIN> <KEY> -int <N>", note: "int値を書き込む" },
+      { cmd: "defaults write <DOMAIN> <KEY> -string \"<VAL>\"", note: "string値を書き込む" },
+      { cmd: "defaults write <DOMAIN> <KEY> -float <N>", note: "float値を書き込む" },
+      { cmd: "defaults delete <DOMAIN> <KEY>", note: "キーを削除" },
+      { cmd: "defaults delete <DOMAIN>", note: "ドメインごと削除" },
+    ]},
+    { label: "よく使うドメイン", cmds: [
+      { cmd: "defaults write com.apple.dock autohide -bool true && killall Dock", note: "Dockを自動隠し" },
+      { cmd: "defaults write com.apple.dock tilesize -int 36 && killall Dock", note: "Dockサイズ変更" },
+      { cmd: "defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder", note: "隠しファイルを表示" },
+      { cmd: "defaults write com.apple.finder ShowPathbar -bool true && killall Finder", note: "パスバー表示" },
+      { cmd: "defaults write NSGlobalDomain KeyRepeat -int 2", note: "キーリピート速度" },
+      { cmd: "defaults write NSGlobalDomain InitialKeyRepeat -int 15", note: "キーリピート開始遅延" },
+      { cmd: "defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false", note: "長押し文字選択を無効化" },
+      { cmd: "defaults write com.apple.screencapture location <PATH>", note: "スクリーンショット保存先変更" },
+      { cmd: "defaults write com.apple.screencapture type jpg", note: "スクリーンショット形式をJPGに" },
+    ]},
+    { label: "plistutil", cmds: [
+      { cmd: "plutil -p <FILE>.plist", note: "plistを人間可読形式で表示" },
+      { cmd: "plutil -convert json <FILE>.plist -o <OUT>.json", note: "plist→JSON変換" },
+      { cmd: "plutil -convert xml1 <FILE>.plist", note: "plistをXML形式に変換" },
+      { cmd: "plutil -lint <FILE>.plist", note: "plist構文チェック" },
+      { cmd: "defaults export <DOMAIN> - | plutil -convert json - -o -", note: "ドメイン設定をJSON出力" },
+    ]},
+  ]},
+
+  { name: "LAUNCHCTL", groups: [
+    { label: "サービス管理", cmds: [
+      { cmd: "launchctl list", note: "ロード済みjob一覧" },
+      { cmd: "launchctl list | grep <LABEL>", note: "ラベルで絞り込み" },
+      { cmd: "launchctl load -w <PLIST>", note: "plistをロード+有効化" },
+      { cmd: "launchctl unload -w <PLIST>", note: "plistをアンロード+無効化" },
+      { cmd: "launchctl start <LABEL>", note: "ジョブを即時起動" },
+      { cmd: "launchctl stop <LABEL>", note: "ジョブを停止" },
+      { cmd: "launchctl kickstart -k gui/$(id -u)/<LABEL>", note: "即時再起動(macOS 10.11+)" },
+      { cmd: "launchctl print gui/$(id -u)/<LABEL>", note: "ジョブ詳細表示" },
+    ]},
+    { label: "LaunchAgent / Daemon パス", cmds: [
+      { cmd: "~/Library/LaunchAgents/", note: "ユーザLaunchAgent(ログイン時)" },
+      { cmd: "/Library/LaunchAgents/", note: "全ユーザLaunchAgent" },
+      { cmd: "/Library/LaunchDaemons/", note: "システムLaunchDaemon(root)" },
+      { cmd: "/System/Library/LaunchDaemons/", note: "AppleシステムDaemon" },
+    ]},
+    { label: "plist 雛形", cmds: [
+      { cmd: "cat > ~/Library/LaunchAgents/<LABEL>.plist << 'EOF'\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n  <key>Label</key><string><LABEL></string>\n  <key>ProgramArguments</key>\n  <array><string><CMD></string></array>\n  <key>RunAtLoad</key><true/>\n  <key>StartInterval</key><integer>300</integer>\n</dict></plist>\nEOF", note: "5分ごと実行のAgent雛形" },
+    ]},
+  ]},
+
+  { name: "SYSTEM PROFILER / SYSCTL", groups: [
+    { label: "システム情報", cmds: [
+      { cmd: "system_profiler SPHardwareDataType", note: "ハードウェア情報(CPU/RAM/SN)" },
+      { cmd: "system_profiler SPSoftwareDataType", note: "OS/カーネルバージョン" },
+      { cmd: "system_profiler SPNetworkDataType", note: "ネットワーク設定一覧" },
+      { cmd: "system_profiler SPUSBDataType", note: "USB接続デバイス一覧" },
+      { cmd: "system_profiler SPBluetoothDataType", note: "Bluetooth情報" },
+      { cmd: "system_profiler SPStorageDataType", note: "ストレージ情報" },
+      { cmd: "system_profiler -json SPHardwareDataType | jq '.SPHardwareDataType[0]'", note: "JSON出力+jq" },
+    ]},
+    { label: "sysctl", cmds: [
+      { cmd: "sysctl -a", note: "全カーネルパラメータ" },
+      { cmd: "sysctl hw.physicalcpu hw.logicalcpu", note: "物理/論理CPUコア数" },
+      { cmd: "sysctl hw.memsize", note: "メモリ容量(bytes)" },
+      { cmd: "sysctl hw.model", note: "Macモデル識別子" },
+      { cmd: "sysctl kern.osversion kern.osrelease", note: "カーネルバージョン" },
+      { cmd: "sysctl vm.swapusage", note: "スワップ使用状況" },
+      { cmd: "sysctl net.inet.tcp.msl", note: "TCP MSL値" },
+      { cmd: "sudo sysctl -w net.inet.tcp.msl=1000", note: "TCP MSL値を変更" },
+      { cmd: "sysctl kern.maxfiles kern.maxfilesperproc", note: "ファイルディスクリプタ上限" },
+    ]},
+  ]},
+
+  { name: "DISKUTIL / HDIUTIL", groups: [
+    { label: "diskutil", cmds: [
+      { cmd: "diskutil list", note: "ディスク/パーティション一覧" },
+      { cmd: "diskutil info <DISK>", note: "ディスク詳細情報" },
+      { cmd: "diskutil eraseDisk APFS <NAME> <DISK>", note: "APFSでディスク消去" },
+      { cmd: "diskutil eraseVolume ExFAT <NAME> <DISK>", note: "ExFATでボリューム消去" },
+      { cmd: "diskutil mount <DISK>", note: "ボリュームをマウント" },
+      { cmd: "diskutil unmount <DISK>", note: "ボリュームをアンマウント" },
+      { cmd: "diskutil eject <DISK>", note: "ディスクをイジェクト" },
+      { cmd: "diskutil repairVolume <DISK>", note: "ボリューム修復(First Aid)" },
+      { cmd: "diskutil apfs listContainers", note: "APFSコンテナ一覧" },
+      { cmd: "diskutil apfs resizeContainer <DISK> 0", note: "APFSコンテナを最大に拡張" },
+    ]},
+    { label: "hdiutil", cmds: [
+      { cmd: "hdiutil create -size 2g -fs APFS -volname <NAME> <OUT>.dmg", note: "DMGイメージ作成" },
+      { cmd: "hdiutil attach <FILE>.dmg", note: "DMGをマウント" },
+      { cmd: "hdiutil detach /Volumes/<NAME>", note: "DMGをアンマウント" },
+      { cmd: "hdiutil convert <IN>.dmg -format UDRO -o <OUT>.dmg", note: "DMGを読み取り専用に変換" },
+      { cmd: "hdiutil verify <FILE>.dmg", note: "DMGの整合性検証" },
+      { cmd: "hdiutil create -srcfolder <DIR>/ -format UDZO -o <OUT>.dmg", note: "フォルダをDMGに圧縮" },
+    ]},
+  ]},
+
+  { name: "NETWORK (mac固有)", groups: [
+    { label: "networksetup", cmds: [
+      { cmd: "networksetup -listallnetworkservices", note: "ネットワークサービス一覧" },
+      { cmd: "networksetup -getinfo \"<SERVICE>\"", note: "サービス設定確認(Wi-Fi等)" },
+      { cmd: "networksetup -setdhcp \"<SERVICE>\"", note: "DHCPに切り替え" },
+      { cmd: "networksetup -setmanual \"<SERVICE>\" <IP> <MASK> <GW>", note: "静的IPを設定" },
+      { cmd: "networksetup -setdnsservers \"<SERVICE>\" 1.1.1.1 8.8.8.8", note: "DNSサーバを設定" },
+      { cmd: "networksetup -getdnsservers \"<SERVICE>\"", note: "DNS設定確認" },
+      { cmd: "networksetup -setwebproxy \"<SERVICE>\" <HOST> <PORT>", note: "HTTPプロキシ設定" },
+      { cmd: "networksetup -setsecurewebproxystate \"<SERVICE>\" off", note: "HTTPSプロキシ無効化" },
+      { cmd: "networksetup -setairportpower en0 on", note: "Wi-FiをON" },
+      { cmd: "networksetup -setairportpower en0 off", note: "Wi-FiをOFF" },
+    ]},
+    { label: "airport / Wi-Fi", cmds: [
+      { cmd: "sudo /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -s", note: "周辺Wi-Fiスキャン" },
+      { cmd: "sudo /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I", note: "現在の接続情報" },
+      { cmd: "networksetup -listpreferredwirelessnetworks en0", note: "保存済みWi-Fiリスト" },
+      { cmd: "networksetup -removepreferredwirelessnetwork en0 <SSID>", note: "保存済みWi-Fi削除" },
+      { cmd: "security find-generic-password -D 'AirPort network password' -a \"<SSID>\" -w", note: "保存済みWi-Fiパスワード取得" },
+    ]},
+    { label: "DNS / ルーティング", cmds: [
+      { cmd: "sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder", note: "DNSキャッシュフラッシュ" },
+      { cmd: "dscacheutil -q host -a name <DOMAIN>", note: "DSキャッシュに名前解決" },
+      { cmd: "dns-sd -q <DOMAIN> A", note: "mDNS/Bonjour解決" },
+      { cmd: "netstat -rn", note: "ルーティングテーブル" },
+      { cmd: "route -n get <IP>", note: "<IP>への経路確認" },
+      { cmd: "sudo route add <NET>/<PREFIX> <GW>", note: "スタティックルート追加" },
+    ]},
+  ]},
+
+  { name: "SECURITY / KEYCHAIN", groups: [
+    { label: "security コマンド", cmds: [
+      { cmd: "security list-keychains", note: "キーチェーン一覧" },
+      { cmd: "security find-generic-password -a <ACCOUNT> -s <SERVICE> -w", note: "パスワード取得" },
+      { cmd: "security add-generic-password -a <ACCOUNT> -s <SERVICE> -w <PASS>", note: "パスワード追加" },
+      { cmd: "security delete-generic-password -a <ACCOUNT> -s <SERVICE>", note: "パスワード削除" },
+      { cmd: "security find-internet-password -s <SERVER> -w", note: "Webパスワード取得" },
+      { cmd: "security import <CERT>.p12 -k ~/Library/Keychains/login.keychain-db", note: "P12証明書をインポート" },
+      { cmd: "security export -k login.keychain-db -t certs -f pemseq -o <OUT>.pem", note: "証明書をPEM形式でエクスポート" },
+      { cmd: "security verify-cert -c <CERT>.pem -v", note: "証明書検証" },
+    ]},
+    { label: "codesign / SIP / Gatekeeper", cmds: [
+      { cmd: "codesign -dv --verbose=4 <APP>", note: "署名情報確認" },
+      { cmd: "codesign --verify --deep --strict <APP>", note: "署名検証" },
+      { cmd: "spctl --assess --type exec -v <APP>", note: "Gatekeeper評価" },
+      { cmd: "spctl --add --label '<LABEL>' <APP>", note: "Gatekeeperに追加承認" },
+      { cmd: "sudo spctl --master-disable", note: "Gatekeeper無効化" },
+      { cmd: "csrutil status", note: "SIP(System Integrity Protection)状態確認" },
+      { cmd: "codesign -s \"<CERT>\" --deep --force <APP>", note: "アプリに署名" },
+    ]},
+  ]},
+
+  { name: "SPOTLIGHT / MDLS / MDFIND", groups: [
+    { label: "mdfind", cmds: [
+      { cmd: "mdfind <QUERY>", note: "Spotlightで検索" },
+      { cmd: "mdfind -name <FILENAME>", note: "ファイル名で検索" },
+      { cmd: "mdfind -onlyin <DIR> <QUERY>", note: "ディレクトリ内に限定検索" },
+      { cmd: "mdfind 'kMDItemContentType == \"public.image\"'", note: "画像ファイルを検索" },
+      { cmd: "mdfind 'kMDItemTextContent == \"<KEYWORD>\"'", note: "ファイル内容でテキスト検索" },
+      { cmd: "mdfind 'kMDItemFSSize > 100000000'", note: "100MB超のファイルを検索" },
+      { cmd: "mdfind 'kMDItemLastUsedDate >= $time.today(-7)'", note: "7日以内に使ったファイル" },
+    ]},
+    { label: "mdls / mdutil", cmds: [
+      { cmd: "mdls <FILE>", note: "ファイルのSpotlightメタデータ表示" },
+      { cmd: "mdls -name kMDItemContentType <FILE>", note: "コンテンツタイプのみ" },
+      { cmd: "mdls -name kMDItemDurationSeconds <FILE>", note: "動画/音声の長さ" },
+      { cmd: "mdls -name kMDItemPixelHeight -name kMDItemPixelWidth <FILE>", note: "画像の解像度" },
+      { cmd: "sudo mdutil -E /", note: "Spotlightインデックスを再構築" },
+      { cmd: "sudo mdutil -a -i off", note: "Spotlightインデックス無効化" },
+      { cmd: "sudo mdutil -a -i on", note: "Spotlightインデックス有効化" },
+      { cmd: "mdimport -L", note: "インポータプラグイン一覧" },
+    ]},
+  ]},
+
+  { name: "MISC (mac固有)", groups: [
+    { label: "open / ditto / caffeinate", cmds: [
+      { cmd: "open <FILE>", note: "デフォルトアプリで開く" },
+      { cmd: "open -a \"<APP>\" <FILE>", note: "アプリ指定で開く" },
+      { cmd: "open -R <FILE>", note: "Finderで親フォルダを開く" },
+      { cmd: "open -n -a \"<APP>\"", note: "アプリを新規インスタンスで起動" },
+      { cmd: "ditto <SRC> <DST>", note: "メタデータ保持コピー" },
+      { cmd: "ditto -c -k --sequesterRsrc <SRC>/ <OUT>.zip", note: "Macメタデータ保持zipアーカイブ" },
+      { cmd: "caffeinate -t 3600", note: "1時間スリープ抑制" },
+      { cmd: "caffeinate -s -w <PID>", note: "PIDが終了するまでスリープ抑制" },
+    ]},
+    { label: "say / screencapture", cmds: [
+      { cmd: "say \"<TEXT>\"", note: "テキストを音声読み上げ" },
+      { cmd: "say -v Kyoko \"<TEXT>\"", note: "日本語音声(Kyoko)で読み上げ" },
+      { cmd: "say -v '?' | grep ja", note: "日本語音声一覧" },
+      { cmd: "screencapture -i <OUT>.png", note: "インタラクティブスクリーンショット" },
+      { cmd: "screencapture -c", note: "クリップボードに保存" },
+      { cmd: "screencapture -x -t jpg <OUT>.jpg", note: "サウンドなし・JPG保存" },
+      { cmd: "screencapture -R<X>,<Y>,<W>,<H> <OUT>.png", note: "座標指定で範囲キャプチャ" },
+    ]},
+    { label: "pmset / softwareupdate", cmds: [
+      { cmd: "pmset -g", note: "省電力設定を表示" },
+      { cmd: "pmset -g log | grep -E 'Wake|Sleep'", note: "スリープ/ウェイクログ" },
+      { cmd: "sudo pmset -a sleep 0", note: "スリープ無効化" },
+      { cmd: "sudo pmset -a displaysleep 10", note: "ディスプレイスリープ10分" },
+      { cmd: "sudo pmset schedule wake '<DATETIME>'", note: "指定日時に自動起動" },
+      { cmd: "softwareupdate -l", note: "利用可能アップデート一覧" },
+      { cmd: "softwareupdate -ia", note: "全アップデートをインストール" },
+      { cmd: "softwareupdate --fetch-full-installer --full-installer-version <VER>", note: "macOSインストーラをDL" },
+    ]},
+  ]},
+];
+
+// ── helpers ──────────────────────────────────────────────
+function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// トークン抽出：出現順に {name, idx} の配列を返す（同名複数は idx が 0,1,2...）
+function extractVarTokens(rawCmd) {
+  const counts = {};
+  const tokens = [];
+  rawCmd.replace(/<([^>\n]+)>/g, (_, name) => {
+    const idx = counts[name] || 0;
+    tokens.push({ name, idx });
+    counts[name] = idx + 1;
+    return _;
+  });
+  return tokens;
+}
+
+function renderCmdText(raw, query) {
+  let s = escHtml(raw);
+  s = s.replace(/(&lt;)([^&\n]+)(&gt;)/g, (_, a, v, b) => `${a}<span class="var">${v}</span>${b}`);
+  s = s.replace(/(^|\s)(--?[\w-]+)/g, (_m,p1,p2) => p1 + `<span class="flag">${p2}</span>`);
+  if (query) {
+    const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    s = s.replace(re, '<mark>$1</mark>');
+  }
+  return s;
+}
+
+function buildVarForm(rawCmd) {
+  const tokens = extractVarTokens(rawCmd);
+  if (!tokens.length) return null;
+
+  // トークンごとの総数（ラベル表示用）
+  const totalCounts = {};
+  tokens.forEach(t => totalCounts[t.name] = (totalCounts[t.name] || 0) + 1);
+
+  const form = document.createElement('div'); form.className = 'var-form';
+  const fields = document.createElement('div'); fields.className = 'var-fields';
+  const inputs = {};
+
+  tokens.forEach(t => {
+    const key = `${t.name}::${t.idx}`;
+    const labelText = totalCounts[t.name] > 1 ? `<${t.name}> ${t.idx + 1}` : `<${t.name}>`;
+    const wrap = document.createElement('div'); wrap.className = 'var-field';
+    const lbl = document.createElement('span'); lbl.className = 'var-label'; lbl.textContent = labelText;
+    const inp = document.createElement('input'); inp.className = 'var-input'; inp.placeholder = t.name; inp.autocomplete = 'off'; inp.spellcheck = false;
+    inputs[key] = inp;
+    const paste = document.createElement('button'); paste.className = 'var-paste-btn'; paste.textContent = '📋'; paste.title = 'クリップボードから貼り付け';
+    paste.addEventListener('click', async e => {
+      e.stopPropagation();
+      try { inp.value = (await navigator.clipboard.readText()).trim(); inp.dispatchEvent(new Event('input')); } catch { inp.focus(); }
+    });
+    wrap.appendChild(lbl); wrap.appendChild(inp); wrap.appendChild(paste);
+    fields.appendChild(wrap);
+  });
+
+  const actions = document.createElement('div'); actions.className = 'form-actions';
+  const preview = document.createElement('span'); preview.className = 'preview-text';
+  const copyBtn = document.createElement('button'); copyBtn.className = 'form-copy-btn'; copyBtn.textContent = 'コピー';
+  const resetBtn = document.createElement('button'); resetBtn.className = 'form-reset-btn'; resetBtn.textContent = 'リセット';
+
+  function buildResult() {
+    const used = {};
+    return rawCmd.replace(/<([^>\n]+)>/g, (_, name) => {
+      const idx = used[name] || 0;
+      const key = `${name}::${idx}`;
+      used[name] = idx + 1;
+      const val = inputs[key] ? inputs[key].value.trim() : '';
+      // 空ならプレースホルダを維持
+      return val || `<${name}>`;
+    });
+  }
+  function updatePreview() { preview.textContent = buildResult(); }
+  Object.values(inputs).forEach(inp => inp.addEventListener('input', updatePreview));
+  updatePreview();
+
+  copyBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(buildResult()).then(() => {
+      copyBtn.textContent = '✓ コピー済'; copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = 'コピー'; copyBtn.classList.remove('copied'); }, 1200);
+    }).catch(() => { /* clipboard 失敗は黙殺 */ });
+  });
+  resetBtn.addEventListener('click', e => { e.stopPropagation(); Object.values(inputs).forEach(i => { i.value = ''; }); updatePreview(); });
+
+  actions.appendChild(preview); actions.appendChild(resetBtn); actions.appendChild(copyBtn);
+  form.addEventListener('click', e => e.stopPropagation());
+  form.addEventListener('mousedown', e => e.stopPropagation());
+  form.appendChild(fields); form.appendChild(actions);
+  return form;
+}
+
+// ── render ────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+const allCmdEls = [];
+
+data.forEach((section, si) => {
+  const secEl = document.createElement('div');
+  secEl.className = `section s${si}`;
+  secEl.innerHTML = `<div class="section-header">${section.name}</div>`;
+  const body = document.createElement('div'); body.className = 'section-body';
+
+  section.groups.forEach((g, gi) => {
+    if (gi > 0) { const d = document.createElement('div'); d.className = 'divider'; body.appendChild(d); }
+    const groupEl = document.createElement('div'); groupEl.className = 'group';
+    groupEl.innerHTML = `<div class="group-label">${g.label}</div>`;
+
+    g.cmds.forEach((c) => {
+      const cmdEl = document.createElement('div'); cmdEl.className = 'cmd';
+      const hasVars = extractVarTokens(c.cmd).length > 0;
+      if (hasVars) cmdEl.classList.add('has-vars');
+
+      const row = document.createElement('div'); row.className = 'cmd-row';
+      const txtEl = document.createElement('div'); txtEl.className = 'cmd-text'; txtEl.innerHTML = renderCmdText(c.cmd, '');
+      const noteEl = document.createElement('div'); noteEl.className = 'cmd-note'; noteEl.textContent = c.note;
+      const copyBtn = document.createElement('button'); copyBtn.className = 'copy-btn'; copyBtn.textContent = '⎘'; copyBtn.title = 'コピー';
+
+      row.appendChild(txtEl); row.appendChild(noteEl); row.appendChild(copyBtn);
+      cmdEl.appendChild(row);
+
+      if (hasVars) {
+        const form = buildVarForm(c.cmd);
+        cmdEl.appendChild(form);
+        cmdEl.addEventListener('click', e => { if (e.target === copyBtn) return; cmdEl.classList.toggle('expanded'); });
+      }
+
+      copyBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(c.cmd).then(() => {
+          copyBtn.textContent = '✓'; copyBtn.classList.add('copied');
+          setTimeout(() => { copyBtn.textContent = '⎘'; copyBtn.classList.remove('copied'); }, 1200);
+        }).catch(() => { /* ignore */ });
+      });
+
+      groupEl.appendChild(cmdEl);
+      allCmdEls.push({ el: cmdEl, rawCmd: c.cmd, rawNote: c.note, txtEl });
+    });
+    body.appendChild(groupEl);
+  });
+  secEl.appendChild(body); grid.appendChild(secEl);
+});
+
+// ── search ───────────────────────────────────────────────
+const searchInput = document.getElementById('search');
+const noResults = document.getElementById('noResults');
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  allCmdEls.forEach(({ el, rawCmd, rawNote, txtEl }) => {
+    if (!q) { el.classList.remove('hidden'); txtEl.innerHTML = renderCmdText(rawCmd, ''); return; }
+    const match = rawCmd.toLowerCase().includes(q) || rawNote.toLowerCase().includes(q);
+    el.classList.toggle('hidden', !match);
+    txtEl.innerHTML = renderCmdText(rawCmd, match ? q : '');
+  });
+  document.querySelectorAll('.group').forEach(g => {
+    g.classList.toggle('hidden', ![...g.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden')));
+  });
+  document.querySelectorAll('.section').forEach(s => {
+    s.classList.toggle('hidden', ![...s.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden')));
+  });
+  noResults.style.display = [...document.querySelectorAll('.section')].some(s => !s.classList.contains('hidden')) ? 'none' : 'block';
+});
+</script>
+</body>
+</html>

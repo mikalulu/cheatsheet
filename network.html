@@ -3,26 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Network CLI Cheatsheet</title>
+<title>Network CLI MITSUKETE++COPIPE</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
-  :root {
-    --bg:#0a0c0f; --panel:#0f1318; --border:#1e2530;
-    --text:#c8d0dc; --dim:#5a6478; --accent:#00d4aa;
-  }
+  :root { --bg:#0a0c0f; --panel:#0f1318; --border:#1e2530; --text:#c8d0dc; --dim:#5a6478; --accent:#00d4aa; }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;padding:16px;min-height:100vh;}
-
-  /* header */
   .top{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
-  h1{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--accent);text-transform:uppercase;white-space:nowrap;}
+  h1{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:#00d4aa;text-transform:uppercase;white-space:nowrap;}
   .search-wrap{flex:1;position:relative;}
   .search-wrap input{width:100%;background:#0f1318;border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 10px 6px 28px;outline:none;transition:border-color .15s;}
-  .search-wrap input:focus{border-color:var(--accent);}
+  .search-wrap input:focus{border-color:#00d4aa;}
   .search-wrap::before{content:'⌕';position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:14px;pointer-events:none;}
   .no-results{color:var(--dim);padding:40px;text-align:center;display:none;}
-
-  /* grid */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
   .section.hidden{display:none;}
@@ -37,17 +30,16 @@
   .section:nth-child(8)  .section-header{background:rgba(80,220,120,.08);color:#50dc78;border-bottom:1px solid rgba(80,220,120,.2);}
   .section:nth-child(9)  .section-header{background:rgba(255,80,160,.08);color:#ff50a0;border-bottom:1px solid rgba(255,80,160,.2);}
   .section:nth-child(10) .section-header{background:rgba(0,212,170,.06);color:#00c49a;border-bottom:1px solid rgba(0,212,170,.15);}
-
   .section-body{padding:10px 0;}
   .group{margin-bottom:10px;}
   .group.hidden{display:none;}
   .group-label{color:var(--dim);font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:0 14px 4px;}
   .divider{height:1px;background:var(--border);margin:6px 14px;}
-
-  /* cmd row */
-  .cmd{padding:3px 14px;transition:background .1s;cursor:pointer;}
+  .cmd{padding:3px 14px;transition:background .1s;cursor:default;}
   .cmd:hover{background:rgba(255,255,255,.04);}
+  .cmd.has-vars{cursor:pointer;}
   .cmd.expanded{background:rgba(255,255,255,.03);}
+  .cmd.hidden{display:none;}
   .cmd-row{display:flex;align-items:flex-start;gap:8px;}
   .cmd-text{flex:1;color:#e0e8f0;word-break:break-all;white-space:pre-wrap;}
   .cmd-text .var{color:#ff6b35;border-bottom:1px dashed rgba(255,107,53,.4);}
@@ -55,10 +47,8 @@
   .cmd-text mark{background:rgba(232,197,71,.25);color:#e8c547;border-radius:2px;}
   .cmd-note{color:var(--dim);font-size:10px;min-width:130px;text-align:right;padding-top:1px;flex-shrink:0;}
   .copy-btn{background:none;border:none;color:var(--dim);cursor:pointer;padding:0 2px;font-size:11px;transition:color .15s;flex-shrink:0;}
-  .copy-btn:hover{color:var(--accent);}
-  .copy-btn.copied{color:var(--accent);}
-
-  /* var form */
+  .copy-btn:hover{color:#00d4aa;}
+  .copy-btn.copied{color:#00d4aa;}
   .var-form{display:none;margin-top:6px;padding:8px 10px;background:rgba(0,0,0,.3);border-radius:4px;border:1px solid var(--border);}
   .cmd.expanded .var-form{display:block;}
   .var-fields{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
@@ -67,21 +57,20 @@
   .var-input{background:#0a0c0f;border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 6px;width:120px;outline:none;transition:border-color .15s;}
   .var-input:focus{border-color:#ff6b35;}
   .var-paste-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:10px;padding:2px 5px;transition:all .15s;}
-  .var-paste-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .var-paste-btn:hover{border-color:#00d4aa;color:#00d4aa;}
   .form-actions{display:flex;gap:6px;align-items:center;}
-  .form-copy-btn{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:3px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;transition:all .15s;}
+  .form-copy-btn{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:3px;color:#00d4aa;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;transition:all .15s;}
   .form-copy-btn:hover{background:rgba(0,212,170,.2);}
   .form-copy-btn.copied{background:rgba(0,212,170,.2);color:#fff;}
   .form-reset-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:11px;padding:4px 8px;transition:all .15s;}
   .form-reset-btn:hover{border-color:var(--dim);color:var(--text);}
   .preview-text{flex:1;color:var(--dim);font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
-
   @media(max-width:900px){.grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div class="top">
-  <h1>CLI Cheatsheet</h1>
+  <h1>Network CLI MITSUKETE++COPIPE</h1>
   <div class="search-wrap"><input type="text" id="search" placeholder="コマンド・注釈・セクションを検索..." autocomplete="off" spellcheck="false"></div>
 </div>
 <div class="no-results" id="noResults">一致するコマンドが見つかりません</div>
@@ -385,241 +374,131 @@ const data = [
 ];
 
 // ── helpers ──────────────────────────────────────────────
-function extractVars(cmd) {
-  const matches = [...cmd.matchAll(/<([^>\n]+)>/g)];
-  const seen = new Set();
-  return matches.map(m => m[1]).filter(v => { if(seen.has(v)) return false; seen.add(v); return true; });
+function extractVarTokens(cmd) {
+  const counts = {};
+  return [...cmd.matchAll(/<([^>\n]+)>/g)].map(m => {
+    const name = m[1];
+    counts[name] = (counts[name] || 0);
+    return { name, idx: counts[name]++ };
+  });
 }
-
-function escHtml(s) {
-  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
+function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function renderCmdText(raw, query) {
   let s = escHtml(raw);
-  // var highlight
   s = s.replace(/(&lt;)([^&\n]+)(&gt;)/g, (_, a, v, b) => `${a}<span class="var">${v}</span>${b}`);
-  // flag highlight
   s = s.replace(/(^|\s)(--?[\w-]+)/g, (_m,p1,p2) => p1 + `<span class="flag">${p2}</span>`);
-  // search highlight
   if (query) {
     const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
     s = s.replace(re, '<mark>$1</mark>');
   }
   return s;
 }
-
-function buildVarForm(cmdEl, rawCmd) {
-  const vars = extractVars(rawCmd);
-  if (!vars.length) return null;
-
-  const form = document.createElement('div');
-  form.className = 'var-form';
-
-  const fields = document.createElement('div');
-  fields.className = 'var-fields';
-
+function buildVarForm(rawCmd) {
+  const tokens = extractVarTokens(rawCmd);
+  if (!tokens.length) return null;
+  const form = document.createElement('div'); form.className = 'var-form';
+  const fields = document.createElement('div'); fields.className = 'var-fields';
   const inputs = {};
-  vars.forEach(v => {
-    const wrap = document.createElement('div');
-    wrap.className = 'var-field';
-
-    const lbl = document.createElement('span');
-    lbl.className = 'var-label';
-    lbl.textContent = `<${v}>`;
-
-    const inp = document.createElement('input');
-    inp.className = 'var-input';
-    inp.placeholder = v;
-    inp.autocomplete = 'off';
-    inp.spellcheck = false;
-    inputs[v] = inp;
-
-    const paste = document.createElement('button');
-    paste.className = 'var-paste-btn';
-    paste.textContent = '📋';
-    paste.title = 'クリップボードから貼り付け';
+  tokens.forEach(({ name, idx }) => {
+    const key = `${name}::${idx}`;
+    const cnt = tokens.filter(t => t.name === name).length;
+    const label = cnt > 1 ? `<${name}> ${idx+1}` : `<${name}>`;
+    const wrap = document.createElement('div'); wrap.className = 'var-field';
+    const lbl = document.createElement('span'); lbl.className = 'var-label'; lbl.textContent = label;
+    const inp = document.createElement('input'); inp.className = 'var-input'; inp.placeholder = name; inp.autocomplete = 'off'; inp.spellcheck = false;
+    inputs[key] = inp;
+    const paste = document.createElement('button'); paste.className = 'var-paste-btn'; paste.textContent = '📋'; paste.title = 'クリップボードから貼り付け';
     paste.addEventListener('click', async e => {
       e.stopPropagation();
-      try {
-        const txt = await navigator.clipboard.readText();
-        inp.value = txt.trim();
-        inp.dispatchEvent(new Event('input'));
-      } catch { inp.focus(); }
+      try { inp.value = (await navigator.clipboard.readText()).trim(); inp.dispatchEvent(new Event('input')); } catch { inp.focus(); }
     });
-
-    wrap.appendChild(lbl);
-    wrap.appendChild(inp);
-    wrap.appendChild(paste);
+    wrap.appendChild(lbl); wrap.appendChild(inp); wrap.appendChild(paste);
     fields.appendChild(wrap);
   });
-
-  // preview + copy
-  const actions = document.createElement('div');
-  actions.className = 'form-actions';
-
-  const preview = document.createElement('span');
-  preview.className = 'preview-text';
-
-  const copyBtn = document.createElement('button');
-  copyBtn.className = 'form-copy-btn';
-  copyBtn.textContent = 'コピー';
-
-  const resetBtn = document.createElement('button');
-  resetBtn.className = 'form-reset-btn';
-  resetBtn.textContent = 'リセット';
-
+  const actions = document.createElement('div'); actions.className = 'form-actions';
+  const preview = document.createElement('span'); preview.className = 'preview-text';
+  const copyBtn = document.createElement('button'); copyBtn.className = 'form-copy-btn'; copyBtn.textContent = 'コピー';
+  const resetBtn = document.createElement('button'); resetBtn.className = 'form-reset-btn'; resetBtn.textContent = 'リセット';
   function buildResult() {
-    let r = rawCmd;
-    vars.forEach(v => {
-      const val = inputs[v].value.trim();
-      if (val) r = r.split(`<${v}>`).join(val);
+    const c = {};
+    return rawCmd.replace(/<([^>\n]+)>/g, (_, name) => {
+      c[name] = (c[name]||0);
+      const val = (inputs[`${name}::${c[name]++}`]||{}).value?.trim();
+      return val || `<${name}>`;
     });
-    return r;
   }
-
-  function updatePreview() {
-    preview.textContent = buildResult();
-  }
-
-  vars.forEach(v => inputs[v].addEventListener('input', updatePreview));
+  function updatePreview() { preview.textContent = buildResult(); }
+  Object.values(inputs).forEach(i => i.addEventListener('input', updatePreview));
   updatePreview();
-
   copyBtn.addEventListener('click', e => {
     e.stopPropagation();
     navigator.clipboard.writeText(buildResult()).then(() => {
-      copyBtn.textContent = '✓ コピー済';
-      copyBtn.classList.add('copied');
+      copyBtn.textContent = '✓ コピー済'; copyBtn.classList.add('copied');
       setTimeout(() => { copyBtn.textContent = 'コピー'; copyBtn.classList.remove('copied'); }, 1200);
     });
   });
-
-  resetBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    vars.forEach(v => { inputs[v].value = ''; });
-    updatePreview();
-  });
-
-  actions.appendChild(preview);
-  actions.appendChild(resetBtn);
-  actions.appendChild(copyBtn);
-  form.appendChild(fields);
-  form.appendChild(actions);
+  resetBtn.addEventListener('click', e => { e.stopPropagation(); Object.values(inputs).forEach(i => i.value=''); updatePreview(); });
+  actions.appendChild(preview); actions.appendChild(resetBtn); actions.appendChild(copyBtn);
+  form.addEventListener('click', e => e.stopPropagation());
+  form.addEventListener('mousedown', e => e.stopPropagation());
+  form.appendChild(fields); form.appendChild(actions);
   return form;
 }
 
 // ── render ────────────────────────────────────────────────
 const grid = document.getElementById('grid');
-const allCmdEls = []; // { el, rawCmd, rawNote, sectionName, groupEl }
-
+const allCmdEls = [];
 data.forEach((section, si) => {
-  const secEl = document.createElement('div');
-  secEl.className = 'section';
+  const secEl = document.createElement('div'); secEl.className = 'section';
   secEl.innerHTML = `<div class="section-header">${section.name}</div>`;
-  const body = document.createElement('div');
-  body.className = 'section-body';
-
+  const body = document.createElement('div'); body.className = 'section-body';
   section.groups.forEach((g, gi) => {
     if (gi > 0) { const d = document.createElement('div'); d.className = 'divider'; body.appendChild(d); }
-    const groupEl = document.createElement('div');
-    groupEl.className = 'group';
+    const groupEl = document.createElement('div'); groupEl.className = 'group';
     groupEl.innerHTML = `<div class="group-label">${g.label}</div>`;
-
-    g.cmds.forEach((c, ci) => {
-      const cmdEl = document.createElement('div');
-      cmdEl.className = 'cmd';
-
-      const hasVars = extractVars(c.cmd).length > 0;
-
-      const row = document.createElement('div');
-      row.className = 'cmd-row';
-
-      const txtEl = document.createElement('div');
-      txtEl.className = 'cmd-text';
-      txtEl.innerHTML = renderCmdText(c.cmd, '');
-
-      const noteEl = document.createElement('div');
-      noteEl.className = 'cmd-note';
-      noteEl.textContent = c.note;
-
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'copy-btn';
-      copyBtn.textContent = '⎘';
-      copyBtn.title = 'コピー';
-
-      row.appendChild(txtEl);
-      row.appendChild(noteEl);
-      row.appendChild(copyBtn);
+    g.cmds.forEach(c => {
+      const cmdEl = document.createElement('div'); cmdEl.className = 'cmd';
+      const hasVars = extractVarTokens(c.cmd).length > 0;
+      if (hasVars) cmdEl.classList.add('has-vars');
+      const row = document.createElement('div'); row.className = 'cmd-row';
+      const txtEl = document.createElement('div'); txtEl.className = 'cmd-text'; txtEl.innerHTML = renderCmdText(c.cmd, '');
+      const noteEl = document.createElement('div'); noteEl.className = 'cmd-note'; noteEl.textContent = c.note;
+      const copyBtn = document.createElement('button'); copyBtn.className = 'copy-btn'; copyBtn.textContent = '⎘'; copyBtn.title = 'コピー';
+      row.appendChild(txtEl); row.appendChild(noteEl); row.appendChild(copyBtn);
       cmdEl.appendChild(row);
-
-      // var form
-      let form = null;
       if (hasVars) {
-        form = buildVarForm(cmdEl, c.cmd);
-        cmdEl.appendChild(form);
-        txtEl.title = 'クリックしてVAR補完';
-        cmdEl.style.cursor = 'pointer';
+        cmdEl.appendChild(buildVarForm(c.cmd));
+        cmdEl.addEventListener('click', e => { if (e.target === copyBtn) return; cmdEl.classList.toggle('expanded'); });
       }
-
-      // toggle expand
-      cmdEl.addEventListener('click', e => {
-        if (e.target === copyBtn) return;
-        if (!hasVars) return;
-        const open = cmdEl.classList.toggle('expanded');
-        if (!open) { /* collapsed */ }
-      });
-
-      // quick copy (no vars)
       copyBtn.addEventListener('click', e => {
         e.stopPropagation();
         navigator.clipboard.writeText(c.cmd).then(() => {
-          copyBtn.textContent = '✓';
-          copyBtn.classList.add('copied');
+          copyBtn.textContent = '✓'; copyBtn.classList.add('copied');
           setTimeout(() => { copyBtn.textContent = '⎘'; copyBtn.classList.remove('copied'); }, 1200);
         });
       });
-
       groupEl.appendChild(cmdEl);
-      allCmdEls.push({ el: cmdEl, rawCmd: c.cmd, rawNote: c.note, sectionName: section.name, groupEl, txtEl });
+      allCmdEls.push({ el: cmdEl, rawCmd: c.cmd, rawNote: c.note, txtEl });
     });
-
     body.appendChild(groupEl);
   });
-
-  secEl.appendChild(body);
-  grid.appendChild(secEl);
+  secEl.appendChild(body); grid.appendChild(secEl);
 });
 
 // ── search ────────────────────────────────────────────────
 const searchInput = document.getElementById('search');
 const noResults = document.getElementById('noResults');
-
 searchInput.addEventListener('input', () => {
   const q = searchInput.value.trim().toLowerCase();
-
   allCmdEls.forEach(({ el, rawCmd, rawNote, txtEl }) => {
-    if (!q) {
-      el.classList.remove('hidden');
-      txtEl.innerHTML = renderCmdText(rawCmd, '');
-      return;
-    }
+    if (!q) { el.classList.remove('hidden'); txtEl.innerHTML = renderCmdText(rawCmd, ''); return; }
     const match = rawCmd.toLowerCase().includes(q) || rawNote.toLowerCase().includes(q);
     el.classList.toggle('hidden', !match);
     txtEl.innerHTML = renderCmdText(rawCmd, match ? q : '');
   });
-
-  // hide empty groups / sections
-  document.querySelectorAll('.group').forEach(g => {
-    const vis = [...g.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden'));
-    g.classList.toggle('hidden', !vis);
-  });
-  document.querySelectorAll('.section').forEach(s => {
-    const vis = [...s.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden'));
-    s.classList.toggle('hidden', !vis);
-  });
-
-  const anyVis = [...document.querySelectorAll('.section')].some(s => !s.classList.contains('hidden'));
-  noResults.style.display = anyVis ? 'none' : 'block';
+  document.querySelectorAll('.group').forEach(g => g.classList.toggle('hidden', ![...g.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden'))));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('hidden', ![...s.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden'))));
+  noResults.style.display = [...document.querySelectorAll('.section')].some(s => !s.classList.contains('hidden')) ? 'none' : 'block';
 });
 </script>
 </body>

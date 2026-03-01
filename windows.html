@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windows CLI MITSUKETE++COPIPE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
+  :root { --bg:#0a0c0f; --panel:#0f1318; --border:#1e2530; --text:#c8d0dc; --dim:#5a6478; --accent:#00b4ff; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;padding:16px;min-height:100vh;}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  h1{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--accent);text-transform:uppercase;white-space:nowrap;}
+  .search-wrap{flex:1;position:relative;}
+  .search-wrap input{width:100%;background:#0f1318;border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 10px 6px 28px;outline:none;transition:border-color .15s;}
+  .search-wrap input:focus{border-color:var(--accent);}
+  .search-wrap::before{content:'⌕';position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:14px;pointer-events:none;}
+  .no-results{color:var(--dim);padding:40px;text-align:center;display:none;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .section.hidden{display:none;}
+  .section-header{padding:8px 14px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;}
+  .s0 .section-header{background:rgba(0,212,170,.08);color:#00d4aa;border-bottom:1px solid rgba(0,212,170,.2);}
+  .s1 .section-header{background:rgba(255,107,53,.08);color:#ff6b35;border-bottom:1px solid rgba(255,107,53,.2);}
+  .s2 .section-header{background:rgba(123,140,222,.08);color:#7b8cde;border-bottom:1px solid rgba(123,140,222,.2);}
+  .s3 .section-header{background:rgba(232,197,71,.08);color:#e8c547;border-bottom:1px solid rgba(232,197,71,.2);}
+  .s4 .section-header{background:rgba(180,100,255,.08);color:#b464ff;border-bottom:1px solid rgba(180,100,255,.2);}
+  .s5 .section-header{background:rgba(0,180,255,.08);color:#00b4ff;border-bottom:1px solid rgba(0,180,255,.2);}
+  .s6 .section-header{background:rgba(255,200,0,.08);color:#ffc800;border-bottom:1px solid rgba(255,200,0,.2);}
+  .s7 .section-header{background:rgba(80,220,120,.08);color:#50dc78;border-bottom:1px solid rgba(80,220,120,.2);}
+  .s8 .section-header{background:rgba(255,80,160,.08);color:#ff50a0;border-bottom:1px solid rgba(255,80,160,.2);}
+  .s9 .section-header{background:rgba(0,212,170,.06);color:#00c49a;border-bottom:1px solid rgba(0,212,170,.15);}
+  .section-body{padding:10px 0;}
+  .group{margin-bottom:10px;}
+  .group.hidden{display:none;}
+  .group-label{color:var(--dim);font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:0 14px 4px;}
+  .divider{height:1px;background:var(--border);margin:6px 14px;}
+  .cmd{padding:3px 14px;transition:background .1s;cursor:default;}
+  .cmd:hover{background:rgba(255,255,255,.04);}
+  .cmd.has-vars{cursor:pointer;}
+  .cmd.expanded{background:rgba(255,255,255,.03);}
+  .cmd.hidden{display:none;}
+  .cmd-row{display:flex;align-items:flex-start;gap:8px;}
+  .cmd-text{flex:1;color:#e0e8f0;word-break:break-all;white-space:pre-wrap;}
+  .cmd-text .var{color:#ff6b35;border-bottom:1px dashed rgba(255,107,53,.4);}
+  .cmd-text .flag{color:#7b8cde;}
+  .cmd-text mark{background:rgba(232,197,71,.25);color:#e8c547;border-radius:2px;}
+  .cmd-note{color:var(--dim);font-size:10px;min-width:140px;text-align:right;padding-top:1px;flex-shrink:0;}
+  .copy-btn{background:none;border:none;color:var(--dim);cursor:pointer;padding:0 2px;font-size:11px;transition:color .15s;flex-shrink:0;}
+  .copy-btn:hover{color:var(--accent);}
+  .copy-btn.copied{color:var(--accent);}
+  .var-form{display:none;margin-top:6px;padding:8px 10px;background:rgba(0,0,0,.3);border-radius:4px;border:1px solid var(--border);}
+  .cmd.expanded .var-form{display:block;}
+  .var-fields{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .var-field{display:flex;align-items:center;gap:4px;}
+  .var-label{color:#ff6b35;font-size:11px;white-space:nowrap;}
+  .var-input{background:#0a0c0f;border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 6px;width:130px;outline:none;transition:border-color .15s;}
+  .var-input:focus{border-color:#ff6b35;}
+  .var-paste-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:10px;padding:2px 5px;transition:all .15s;}
+  .var-paste-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .form-actions{display:flex;gap:6px;align-items:center;}
+  .form-copy-btn{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:3px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;transition:all .15s;}
+  .form-copy-btn:hover{background:rgba(0,212,170,.2);}
+  .form-copy-btn.copied{background:rgba(0,212,170,.2);color:#fff;}
+  .form-reset-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:11px;padding:4px 8px;transition:all .15s;}
+  .form-reset-btn:hover{border-color:var(--dim);color:var(--text);}
+  .preview-text{flex:1;color:var(--dim);font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Windows CLI MITSUKETE++COPIPE</h1>
+  <div class="search-wrap"><input type="text" id="search" placeholder="コマンド・注釈・セクションを検索..." autocomplete="off" spellcheck="false"></div>
+</div>
+<div class="no-results" id="noResults">一致するコマンドが見つかりません</div>
+<div class="grid" id="grid"></div>
+<script>
+const data = [
+  { name: "PS: NETWORK", groups: [
+    { label: "接続確認 / 疎通", cmds: [
+      { cmd: "Test-NetConnection -ComputerName <HOST> -Port <PORT>", note: "TCP疎通確認" },
+      { cmd: "Test-NetConnection -ComputerName <HOST> -TraceRoute", note: "tracerouteに相当" },
+      { cmd: "Test-NetConnection -ComputerName <HOST> -DiagnoseRouting", note: "経路診断" },
+      { cmd: "Resolve-DnsName <HOST>", note: "DNS解決(A/AAAA)" },
+      { cmd: "Resolve-DnsName <HOST> -Type MX", note: "MXレコード" },
+      { cmd: "Resolve-DnsName <HOST> -Server <DNSSERVER>", note: "DNSサーバ指定" },
+      { cmd: "Resolve-DnsName <HOST> -Type TXT | Select-Object -ExpandProperty Strings", note: "TXTレコード展開" },
+    ]},
+    { label: "インタフェース / アドレス", cmds: [
+      { cmd: "Get-NetIPAddress | Format-Table InterfaceAlias,AddressFamily,IPAddress,PrefixLength", note: "IPアドレス一覧" },
+      { cmd: "Get-NetAdapter | Format-Table Name,Status,LinkSpeed,MacAddress", note: "NIC一覧" },
+      { cmd: "Get-NetIPConfiguration", note: "インタフェース設定サマリ" },
+      { cmd: "New-NetIPAddress -InterfaceAlias '<IF>' -IPAddress <IP> -PrefixLength <PREFIX> -DefaultGateway <GW>", note: "静的IPを設定" },
+      { cmd: "Set-DnsClientServerAddress -InterfaceAlias '<IF>' -ServerAddresses 1.1.1.1,8.8.8.8", note: "DNSサーバを設定" },
+      { cmd: "Get-NetRoute | Sort-Object RouteMetric | Format-Table", note: "ルーティングテーブル" },
+      { cmd: "New-NetRoute -DestinationPrefix <NET>/<PREFIX> -NextHop <GW> -InterfaceAlias '<IF>'", note: "スタティックルート追加" },
+    ]},
+    { label: "ソケット / ファイアウォール", cmds: [
+      { cmd: "Get-NetTCPConnection -State Listen | Sort LocalPort | Format-Table", note: "TCP LISTEN一覧" },
+      { cmd: "Get-NetTCPConnection -RemoteAddress <IP> | Format-Table", note: "接続先IPで絞り込み" },
+      { cmd: "Get-NetTCPConnection | Where-Object {$_.LocalPort -eq <PORT>}", note: "ポート番号で絞り込み" },
+      { cmd: "Get-NetFirewallRule -Enabled True | Format-Table Name,Direction,Action,DisplayName", note: "有効FWルール一覧" },
+      { cmd: "New-NetFirewallRule -DisplayName '<NAME>' -Direction Inbound -Protocol TCP -LocalPort <PORT> -Action Allow", note: "インバウンドルール追加" },
+      { cmd: "Remove-NetFirewallRule -DisplayName '<NAME>'", note: "FWルール削除" },
+      { cmd: "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False", note: "FW全プロファイル無効化" },
+    ]},
+    { label: "netsh (CMD互換)", cmds: [
+      { cmd: "netsh interface ip show addresses", note: "IPアドレス一覧(netsh)" },
+      { cmd: "netsh interface ip set address '<IF>' static <IP> <MASK> <GW>", note: "静的IP設定(netsh)" },
+      { cmd: "netsh interface ip set address '<IF>' dhcp", note: "DHCP切り替え" },
+      { cmd: "netsh wlan show profiles", note: "保存済みWi-Fiプロファイル" },
+      { cmd: "netsh wlan show profile name='<SSID>' key=clear", note: "Wi-Fiパスワード表示" },
+      { cmd: "netsh wlan connect name='<SSID>'", note: "Wi-Fi接続" },
+      { cmd: "netsh int tcp show global", note: "TCP グローバル設定確認" },
+      { cmd: "netsh int tcp set global autotuninglevel=normal", note: "TCP自動チューニング設定" },
+    ]},
+  ]},
+
+  { name: "PS: FILE / PROCESS", groups: [
+    { label: "ファイル操作", cmds: [
+      { cmd: "Get-ChildItem -Path <DIR> -Recurse -Filter *.log | Where-Object {$_.LastWriteTime -lt (Get-Date).AddDays(-7)}", note: "7日以上前のlogファイル" },
+      { cmd: "Get-ChildItem -Path <DIR> -Recurse | Measure-Object -Property Length -Sum", note: "ディレクトリ合計サイズ" },
+      { cmd: "Get-Item <FILE> | Select-Object Name,Length,LastWriteTime,Attributes", note: "ファイル詳細" },
+      { cmd: "Copy-Item -Path <SRC> -Destination <DST> -Recurse -Force", note: "再帰コピー(強制)" },
+      { cmd: "Move-Item -Path <SRC> -Destination <DST>", note: "移動/リネーム" },
+      { cmd: "Remove-Item -Path <PATH> -Recurse -Force", note: "再帰削除(確認なし)" },
+      { cmd: "Get-FileHash <FILE> -Algorithm SHA256 | Select-Object Hash", note: "SHA256ハッシュ" },
+      { cmd: "Select-String -Path <FILE> -Pattern '<PATTERN>' -Context 2,2", note: "grep相当+前後2行" },
+      { cmd: "Get-Content <FILE> -Tail 100 -Wait", note: "tail -f相当" },
+      { cmd: "(Get-Content <FILE>) -replace '<OLD>','<NEW>' | Set-Content <FILE>", note: "ファイル内文字列置換" },
+    ]},
+    { label: "プロセス", cmds: [
+      { cmd: "Get-Process | Sort-Object CPU -Descending | Select-Object -First 20", note: "CPU使用上位20プロセス" },
+      { cmd: "Get-Process | Sort-Object WorkingSet -Descending | Select-Object Name,Id,WorkingSet | Select-Object -First 20", note: "メモリ使用上位20" },
+      { cmd: "Get-Process -Name <NAME> | Select-Object Id,CPU,WorkingSet,Path", note: "プロセス名で絞り込み" },
+      { cmd: "Stop-Process -Name <NAME> -Force", note: "プロセスを強制終了" },
+      { cmd: "Stop-Process -Id <PID> -Force", note: "PID指定で強制終了" },
+      { cmd: "Start-Process -FilePath <EXE> -ArgumentList '<ARGS>' -Verb RunAs", note: "管理者として起動" },
+      { cmd: "Get-Process | Where-Object {$_.MainWindowTitle -ne ''} | Select-Object Name,MainWindowTitle", note: "ウィンドウタイトル付きプロセス" },
+    ]},
+    { label: "ACL / 権限", cmds: [
+      { cmd: "Get-Acl <PATH> | Format-List", note: "ACL確認" },
+      { cmd: "icacls <PATH> /grant '<USER>:(OI)(CI)F'", note: "フルコントロール付与" },
+      { cmd: "icacls <PATH> /remove '<USER>'", note: "ACLエントリ削除" },
+      { cmd: "icacls <PATH> /reset /T", note: "ACLを継承に戻す(再帰)" },
+      { cmd: "takeown /f <PATH> /r /d y", note: "所有権を取得(再帰)" },
+      { cmd: "$acl = Get-Acl <PATH>; $acl.SetAccessRuleProtection($true,$false); Set-Acl <PATH> $acl", note: "継承を無効化" },
+    ]},
+  ]},
+
+  { name: "PS: SERVICE / TASK", groups: [
+    { label: "サービス管理", cmds: [
+      { cmd: "Get-Service | Where-Object {$_.Status -eq 'Stopped' -and $_.StartType -eq 'Automatic'} | Format-Table", note: "自動起動なのに停止中" },
+      { cmd: "Get-Service -Name <SVC> | Select-Object *", note: "サービス詳細" },
+      { cmd: "Start-Service -Name <SVC>", note: "サービス起動" },
+      { cmd: "Stop-Service -Name <SVC> -Force", note: "サービス停止(強制)" },
+      { cmd: "Restart-Service -Name <SVC> -Force", note: "サービス再起動" },
+      { cmd: "Set-Service -Name <SVC> -StartupType Automatic", note: "自動起動に変更" },
+      { cmd: "Set-Service -Name <SVC> -StartupType Disabled", note: "無効化" },
+      { cmd: "New-Service -Name '<SVC>' -BinaryPathName '<EXE>' -StartupType Automatic -Description '<DESC>'", note: "サービス新規登録" },
+      { cmd: "sc.exe delete <SVC>", note: "サービス削除(sc.exe)" },
+    ]},
+    { label: "タスクスケジューラ", cmds: [
+      { cmd: "Get-ScheduledTask | Where-Object {$_.State -eq 'Running'} | Format-Table", note: "実行中タスク一覧" },
+      { cmd: "Get-ScheduledTask -TaskName '<TASK>' | Get-ScheduledTaskInfo", note: "タスク詳細+最終実行結果" },
+      { cmd: "Start-ScheduledTask -TaskName '<TASK>'", note: "タスクを即時実行" },
+      { cmd: "Disable-ScheduledTask -TaskName '<TASK>'", note: "タスク無効化" },
+      { cmd: "Unregister-ScheduledTask -TaskName '<TASK>' -Confirm:$false", note: "タスク削除" },
+      { cmd: "$t = New-ScheduledTaskTrigger -Daily -At '<TIME>'\n$a = New-ScheduledTaskAction -Execute '<EXE>' -Argument '<ARGS>'\nRegister-ScheduledTask -TaskName '<TASK>' -Trigger $t -Action $a -RunLevel Highest", note: "日次タスク登録(管理者)" },
+    ]},
+    { label: "イベントログ", cmds: [
+      { cmd: "Get-WinEvent -LogName System -MaxEvents 50 | Where-Object {$_.LevelDisplayName -eq 'Error'} | Format-List", note: "Systemログのエラー" },
+      { cmd: "Get-WinEvent -LogName Security -MaxEvents 100 | Where-Object {$_.Id -eq 4625}", note: "ログオン失敗(ID:4625)" },
+      { cmd: "Get-WinEvent -LogName Security | Where-Object {$_.Id -eq 4624 -and $_.TimeCreated -gt (Get-Date).AddHours(-1)}", note: "1時間以内のログオン成功" },
+      { cmd: "Get-WinEvent -FilterHashtable @{LogName='Application';Level=2;StartTime=(Get-Date).AddDays(-1)}", note: "24h以内のAppエラー" },
+      { cmd: "Get-WinEvent -ListLog * | Where-Object {$_.RecordCount -gt 0} | Sort-Object RecordCount -Descending", note: "レコード数の多いログ一覧" },
+      { cmd: "Clear-EventLog -LogName Application", note: "Applicationログをクリア" },
+    ]},
+  ]},
+
+  { name: "PS: WMI / CIM", groups: [
+    { label: "システム情報", cmds: [
+      { cmd: "Get-CimInstance Win32_ComputerSystem | Select-Object Name,Manufacturer,Model,TotalPhysicalMemory", note: "ハードウェア情報" },
+      { cmd: "Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,BuildNumber,OSArchitecture,LastBootUpTime", note: "OS情報+最終起動時刻" },
+      { cmd: "Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors,MaxClockSpeed", note: "CPU情報" },
+      { cmd: "Get-CimInstance Win32_PhysicalMemory | Select-Object BankLabel,Capacity,Speed,Manufacturer", note: "メモリスロット情報" },
+      { cmd: "Get-CimInstance Win32_DiskDrive | Select-Object Model,Size,MediaType,SerialNumber", note: "ディスク情報" },
+      { cmd: "Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,Size,FreeSpace,FileSystem", note: "ドライブ空き容量" },
+      { cmd: "Get-CimInstance Win32_VideoController | Select-Object Name,AdapterRAM,DriverVersion", note: "GPU情報" },
+    ]},
+    { label: "プロセス / パフォーマンス", cmds: [
+      { cmd: "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId,CommandLine | Sort-Object ProcessId", note: "プロセス+コマンドライン" },
+      { cmd: "Get-CimInstance Win32_Process -Filter \"Name='<EXE>'\" | Select-Object ProcessId,CommandLine,CreationDate", note: "プロセス名で絞り込み" },
+      { cmd: "Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor | Where-Object {$_.Name -eq '_Total'} | Select-Object PercentProcessorTime", note: "CPU使用率" },
+      { cmd: "Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory | Select-Object AvailableMBytes,CommittedBytes", note: "メモリ使用状況" },
+      { cmd: "Get-CimInstance Win32_PageFileUsage | Select-Object Name,CurrentUsage,AllocatedBaseSize", note: "ページファイル使用状況" },
+    ]},
+    { label: "ネットワーク / 起動", cmds: [
+      { cmd: "Get-CimInstance Win32_NetworkAdapterConfiguration -Filter 'IPEnabled=True' | Select-Object Description,IPAddress,MACAddress,DefaultIPGateway", note: "NIC設定(IP有効のみ)" },
+      { cmd: "Get-CimInstance Win32_NetworkAdapter | Where-Object {$_.NetEnabled -eq $true} | Select-Object Name,Speed,MACAddress", note: "有効NIC一覧" },
+      { cmd: "Get-CimInstance Win32_StartupCommand | Select-Object Name,Command,Location,User", note: "スタートアップ登録コマンド" },
+      { cmd: "Get-CimInstance Win32_QuickFixEngineering | Sort-Object InstalledOn -Descending | Select-Object -First 20", note: "最近のWindows Update(KB)" },
+      { cmd: "Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine='<CMD>'}", note: "CIM経由でプロセス起動" },
+    ]},
+  ]},
+
+  { name: "PS: REGISTRY", groups: [
+    { label: "読み書き", cmds: [
+      { cmd: "Get-ItemProperty -Path 'HKLM:\\<KEY>'", note: "キー配下の値を全取得" },
+      { cmd: "Get-ItemProperty -Path 'HKLM:\\<KEY>' -Name '<VALUE>'", note: "特定の値を取得" },
+      { cmd: "Set-ItemProperty -Path 'HKCU:\\<KEY>' -Name '<VALUE>' -Value '<DATA>'", note: "値を書き込む" },
+      { cmd: "New-Item -Path 'HKCU:\\<KEY>' -Force", note: "キーを作成" },
+      { cmd: "New-ItemProperty -Path 'HKCU:\\<KEY>' -Name '<VALUE>' -Value '<DATA>' -PropertyType String", note: "値を新規作成" },
+      { cmd: "Remove-ItemProperty -Path 'HKCU:\\<KEY>' -Name '<VALUE>'", note: "値を削除" },
+      { cmd: "Remove-Item -Path 'HKCU:\\<KEY>' -Recurse", note: "キーを再帰削除" },
+    ]},
+    { label: "検索 / エクスポート", cmds: [
+      { cmd: "Get-ChildItem -Path 'HKLM:\\SOFTWARE' -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.Name -match '<PATTERN>'}", note: "キー名で再帰検索" },
+      { cmd: "reg query 'HKLM\\<KEY>' /s /f '<KEYWORD>'", note: "reg queryで値検索" },
+      { cmd: "reg export 'HKLM\\<KEY>' <OUT>.reg /y", note: "キーをregファイルにエクスポート" },
+      { cmd: "reg import <FILE>.reg", note: "regファイルをインポート" },
+      { cmd: "reg compare 'HKLM\\<KEY>' 'HKCU\\<KEY>' /s", note: "2キーを比較" },
+    ]},
+    { label: "よく使うキー", cmds: [
+      { cmd: "Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion'", note: "OSビルド番号/エディション" },
+      { cmd: "Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\<SVC>'", note: "サービス設定" },
+      { cmd: "Get-ChildItem 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run'", note: "ユーザスタートアップ" },
+      { cmd: "Get-ChildItem 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run'", note: "システムスタートアップ" },
+      { cmd: "Get-ChildItem 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall' | Get-ItemProperty | Select-Object DisplayName,DisplayVersion,Publisher | Sort-Object DisplayName", note: "インストール済みソフト一覧" },
+      { cmd: "Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server' -Name fDenyTSConnections", note: "RDP有効/無効確認" },
+      { cmd: "Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server' -Name fDenyTSConnections -Value 0", note: "RDPを有効化" },
+    ]},
+  ]},
+
+  { name: "PS: ACTIVE DIRECTORY", groups: [
+    { label: "ユーザ", cmds: [
+      { cmd: "Get-ADUser -Identity <USER> -Properties *", note: "ユーザ詳細(全属性)" },
+      { cmd: "Get-ADUser -Filter {SamAccountName -like '<PATTERN>'} | Select-Object Name,SamAccountName,Enabled", note: "ユーザ検索" },
+      { cmd: "Get-ADUser -Filter {Enabled -eq $false} -Properties LastLogonDate | Sort-Object LastLogonDate | Format-Table", note: "無効ユーザ+最終ログオン" },
+      { cmd: "Get-ADUser -Filter {PasswordExpired -eq $true} | Select-Object Name,SamAccountName", note: "パスワード期限切れユーザ" },
+      { cmd: "Get-ADUser -Filter * -SearchBase 'OU=<OU>,DC=<DC>,DC=<DC>' | Measure-Object", note: "OU内ユーザ数" },
+      { cmd: "New-ADUser -Name '<NAME>' -SamAccountName '<USER>' -UserPrincipalName '<USER>@<DOMAIN>' -AccountPassword (ConvertTo-SecureString '<PASS>' -AsPlainText -Force) -Enabled $true", note: "ユーザ作成" },
+      { cmd: "Set-ADUser -Identity <USER> -EmailAddress '<MAIL>' -Department '<DEPT>'", note: "ユーザ属性変更" },
+      { cmd: "Disable-ADAccount -Identity <USER>", note: "アカウント無効化" },
+      { cmd: "Unlock-ADAccount -Identity <USER>", note: "アカウントロック解除" },
+      { cmd: "Set-ADAccountPassword -Identity <USER> -NewPassword (ConvertTo-SecureString '<PASS>' -AsPlainText -Force) -Reset", note: "パスワードリセット" },
+    ]},
+    { label: "グループ", cmds: [
+      { cmd: "Get-ADGroupMember -Identity '<GROUP>' -Recursive | Select-Object Name,SamAccountName,objectClass", note: "グループメンバ(再帰)" },
+      { cmd: "Get-ADPrincipalGroupMembership -Identity <USER> | Select-Object Name", note: "ユーザが属するグループ" },
+      { cmd: "Add-ADGroupMember -Identity '<GROUP>' -Members <USER>", note: "グループにメンバ追加" },
+      { cmd: "Remove-ADGroupMember -Identity '<GROUP>' -Members <USER> -Confirm:$false", note: "グループからメンバ削除" },
+      { cmd: "New-ADGroup -Name '<GROUP>' -GroupScope Global -GroupCategory Security -Path 'OU=<OU>,DC=<DC>,DC=<DC>'", note: "セキュリティグループ作成" },
+    ]},
+    { label: "コンピュータ / OU / 検索", cmds: [
+      { cmd: "Get-ADComputer -Filter * -Properties LastLogonDate | Where-Object {$_.LastLogonDate -lt (Get-Date).AddDays(-90)} | Select-Object Name,LastLogonDate", note: "90日間未ログインPC" },
+      { cmd: "Get-ADComputer -Filter {OperatingSystem -like '*Server*'} | Select-Object Name,OperatingSystem", note: "Serverマシン一覧" },
+      { cmd: "Get-ADOrganizationalUnit -Filter * | Select-Object Name,DistinguishedName", note: "OU一覧" },
+      { cmd: "Move-ADObject -Identity '<DN>' -TargetPath 'OU=<OU>,DC=<DC>,DC=<DC>'", note: "オブジェクトをOUに移動" },
+      { cmd: "Get-ADDomain | Select-Object Forest,DomainMode,PDCEmulator,RIDMaster", note: "ドメイン情報" },
+      { cmd: "Get-ADDomainController -Filter * | Select-Object Name,IPv4Address,Site,IsGlobalCatalog", note: "DC一覧" },
+      { cmd: "Test-ComputerSecureChannel -Repair -Credential (Get-Credential)", note: "セキュアチャネル修復" },
+    ]},
+    { label: "GP / レプリケーション", cmds: [
+      { cmd: "Get-GPO -All | Select-Object DisplayName,GpoStatus,CreationTime | Sort-Object CreationTime -Descending", note: "GPO一覧" },
+      { cmd: "Get-GPResultantSetOfPolicy -ReportType Html -Path <OUT>.html", note: "RSoPレポート出力(HTML)" },
+      { cmd: "gpresult /r /scope computer", note: "適用済みGPO確認(PC)" },
+      { cmd: "gpupdate /force", note: "GPO強制更新" },
+      { cmd: "repadmin /replsummary", note: "レプリケーションサマリ" },
+      { cmd: "repadmin /showrepl", note: "レプリケーション詳細" },
+      { cmd: "dcdiag /test:replications /v", note: "レプリケーション診断" },
+    ]},
+  ]},
+
+  { name: "PS: SECURITY / CERT", groups: [
+    { label: "証明書ストア", cmds: [
+      { cmd: "Get-ChildItem Cert:\\LocalMachine\\My | Select-Object Thumbprint,Subject,NotAfter | Sort-Object NotAfter", note: "個人証明書+有効期限" },
+      { cmd: "Get-ChildItem Cert:\\LocalMachine\\My | Where-Object {$_.NotAfter -lt (Get-Date).AddDays(30)}", note: "30日以内に期限切れの証明書" },
+      { cmd: "Get-ChildItem -Path Cert:\\LocalMachine\\Root | Where-Object {$_.Subject -match '<PATTERN>'}", note: "ルートCA証明書を検索" },
+      { cmd: "Import-Certificate -FilePath <CERT>.cer -CertStoreLocation Cert:\\LocalMachine\\My", note: "証明書インポート" },
+      { cmd: "Import-PfxCertificate -FilePath <PFX>.pfx -CertStoreLocation Cert:\\LocalMachine\\My -Password (ConvertTo-SecureString '<PASS>' -AsPlainText -Force)", note: "PFXインポート" },
+      { cmd: "Export-Certificate -Cert (Get-ChildItem Cert:\\LocalMachine\\My\\<THUMB>) -FilePath <OUT>.cer", note: "証明書エクスポート" },
+      { cmd: "Remove-Item Cert:\\LocalMachine\\My\\<THUMB>", note: "証明書削除" },
+    ]},
+    { label: "ローカルセキュリティ / 監査", cmds: [
+      { cmd: "Get-LocalUser | Select-Object Name,Enabled,LastLogon,PasswordRequired", note: "ローカルユーザ一覧" },
+      { cmd: "Get-LocalGroupMember -Group 'Administrators'", note: "ローカル管理者グループ" },
+      { cmd: "net localgroup Administrators <USER> /add", note: "ローカル管理者に追加" },
+      { cmd: "secedit /export /cfg <OUT>.cfg", note: "セキュリティポリシーエクスポート" },
+      { cmd: "auditpol /get /category:*", note: "監査ポリシー確認" },
+      { cmd: "auditpol /set /subcategory:'Logon' /success:enable /failure:enable", note: "ログオン監査を有効化" },
+    ]},
+  ]},
+
+  { name: "PS: HYPER-V / STORAGE", groups: [
+    { label: "Hyper-V VM操作", cmds: [
+      { cmd: "Get-VM | Format-Table Name,State,CPUUsage,MemoryAssigned,Uptime", note: "VM一覧+リソース使用量" },
+      { cmd: "Start-VM -Name '<VM>'", note: "VM起動" },
+      { cmd: "Stop-VM -Name '<VM>' -Force", note: "VM強制停止" },
+      { cmd: "Checkpoint-VM -Name '<VM>' -SnapshotName '<SNAP>'", note: "チェックポイント作成" },
+      { cmd: "Get-VMCheckpoint -VMName '<VM>' | Format-Table Name,CreationTime", note: "チェックポイント一覧" },
+      { cmd: "Restore-VMCheckpoint -Name '<SNAP>' -VMName '<VM>' -Confirm:$false", note: "チェックポイント復元" },
+      { cmd: "New-VM -Name '<VM>' -MemoryStartupBytes 2GB -Generation 2 -NewVHDPath '<VHDX>' -NewVHDSizeBytes 40GB -SwitchName '<SWITCH>'", note: "VM新規作成" },
+      { cmd: "Move-VM -Name '<VM>' -DestinationHost '<HOST>' -IncludeStorage -DestinationStoragePath '<PATH>'", note: "ライブマイグレーション" },
+    ]},
+    { label: "ディスク / ボリューム", cmds: [
+      { cmd: "Get-Disk | Format-Table Number,FriendlyName,Size,PartitionStyle,OperationalStatus", note: "ディスク一覧" },
+      { cmd: "Get-Volume | Format-Table DriveLetter,FileSystemLabel,FileSystem,SizeRemaining,Size", note: "ボリューム一覧+空き容量" },
+      { cmd: "Get-Partition | Format-Table DiskNumber,PartitionNumber,DriveLetter,Size,Type", note: "パーティション一覧" },
+      { cmd: "Initialize-Disk -Number <N> -PartitionStyle GPT", note: "ディスク初期化(GPT)" },
+      { cmd: "New-Partition -DiskNumber <N> -UseMaximumSize -DriveLetter <LETTER>", note: "パーティション作成" },
+      { cmd: "Format-Volume -DriveLetter <LETTER> -FileSystem NTFS -NewFileSystemLabel '<LABEL>' -Confirm:$false", note: "NTFSフォーマット" },
+      { cmd: "Optimize-Volume -DriveLetter <LETTER> -Defrag -Verbose", note: "デフラグ" },
+      { cmd: "Repair-Volume -DriveLetter <LETTER> -Scan", note: "ボリュームスキャン(chkdsk相当)" },
+    ]},
+  ]},
+
+  { name: "PS: REMOTE / MISC", groups: [
+    { label: "PSRemoting / WinRM", cmds: [
+      { cmd: "Enable-PSRemoting -Force", note: "PSRemoting有効化" },
+      { cmd: "Enter-PSSession -ComputerName <HOST> -Credential (Get-Credential)", note: "リモートセッション開始" },
+      { cmd: "Invoke-Command -ComputerName <HOST> -ScriptBlock { <CMD> } -Credential (Get-Credential)", note: "リモートコマンド実行" },
+      { cmd: "Invoke-Command -ComputerName <HOST1>,<HOST2> -ScriptBlock { hostname }", note: "複数ホストに同時実行" },
+      { cmd: "New-PSSession -ComputerName <HOST> -Credential (Get-Credential)", note: "永続セッション作成" },
+      { cmd: "winrm quickconfig", note: "WinRM自動設定" },
+      { cmd: "Test-WSMan -ComputerName <HOST>", note: "WinRM疎通確認" },
+      { cmd: "Set-Item WSMan:\\localhost\\Client\\TrustedHosts -Value '<HOST>' -Force", note: "信頼済みホスト追加" },
+    ]},
+    { label: "パイプライン / 便利技", cmds: [
+      { cmd: "Get-Command -Module ActiveDirectory | Select-Object Name | Out-GridView", note: "モジュールのコマンド一覧(GUI)" },
+      { cmd: "Get-History | Export-Csv -Path <OUT>.csv -NoTypeInformation", note: "コマンド履歴をCSV保存" },
+      { cmd: "Measure-Command { <CMD> }", note: "コマンド実行時間計測" },
+      { cmd: "1..10 | ForEach-Object -Parallel { <CMD> } -ThrottleLimit 5", note: "並列実行(PS7+)" },
+      { cmd: "<CMD> | ConvertTo-Json -Depth 5 | Out-File <OUT>.json", note: "JSON出力" },
+      { cmd: "<CMD> | Export-Csv -Path <OUT>.csv -NoTypeInformation -Encoding UTF8", note: "CSV出力" },
+      { cmd: "Start-Transcript -Path <LOG>.txt -Append", note: "セッションログ記録開始" },
+      { cmd: "Stop-Transcript", note: "ログ記録停止" },
+    ]},
+    { label: "Windows Update (PSWindowsUpdate)", cmds: [
+      { cmd: "Install-Module PSWindowsUpdate -Force", note: "モジュールインストール" },
+      { cmd: "Get-WindowsUpdate", note: "利用可能アップデート一覧" },
+      { cmd: "Install-WindowsUpdate -AcceptAll -AutoReboot", note: "全アップデートを適用+自動再起動" },
+      { cmd: "Get-WUHistory | Select-Object -First 20 | Format-Table Date,Title,Result", note: "更新履歴" },
+      { cmd: "Hide-WindowsUpdate -KBArticleID <KB>", note: "特定KBを非表示" },
+    ]},
+  ]},
+
+  { name: "PS: DEV ENV", groups: [
+    { label: "winget", cmds: [
+      { cmd: "winget search <QUERY>", note: "パッケージ検索" },
+      { cmd: "winget install --id <ID> -e --silent", note: "サイレントインストール" },
+      { cmd: "winget install --id <ID> -e --location <DIR>", note: "インストール先指定" },
+      { cmd: "winget upgrade --all --silent", note: "全パッケージ一括アップグレード" },
+      { cmd: "winget list | Where-Object {$_ -match '<PATTERN>'}", note: "インストール済みを絞り込み" },
+      { cmd: "winget export -o <OUT>.json", note: "インストール済みリストをエクスポート" },
+      { cmd: "winget import -i <FILE>.json --accept-package-agreements", note: "リストからインポートインストール" },
+    ]},
+    { label: "環境変数 / PATH", cmds: [
+      { cmd: "$env:PATH -split ';'", note: "PATH一覧を表示" },
+      { cmd: "[Environment]::SetEnvironmentVariable('<VAR>','<VAL>','Machine')", note: "システム環境変数を永続設定" },
+      { cmd: "[Environment]::SetEnvironmentVariable('<VAR>','<VAL>','User')", note: "ユーザ環境変数を永続設定" },
+      { cmd: "[Environment]::GetEnvironmentVariable('<VAR>','Machine')", note: "システム環境変数を取得" },
+      { cmd: "$path = [Environment]::GetEnvironmentVariable('PATH','Machine'); [Environment]::SetEnvironmentVariable('PATH',\"$path;<DIR>\",'Machine')", note: "システムPATHにディレクトリ追加" },
+    ]},
+    { label: "WSL / Hyper-V (開発向け)", cmds: [
+      { cmd: "wsl --list --verbose", note: "WSLディストリビューション一覧" },
+      { cmd: "wsl --install -d <DISTRO>", note: "ディストリビューションインストール" },
+      { cmd: "wsl --set-version <DISTRO> 2", note: "WSL2に切り替え" },
+      { cmd: "wsl --shutdown", note: "全WSLインスタンスを停止" },
+      { cmd: "wsl --export <DISTRO> <OUT>.tar", note: "ディストリビューションをエクスポート" },
+      { cmd: "wsl --import <DISTRO> <DIR> <FILE>.tar", note: "ディストリビューションをインポート" },
+      { cmd: "wsl -d <DISTRO> -e bash -c '<CMD>'", note: "WSL内でコマンド実行" },
+    ]},
+  ]},
+
+  { name: "CMD", groups: [
+    { label: "ネットワーク", cmds: [
+      { cmd: "ipconfig /all", note: "IP/MAC/DNS等全情報" },
+      { cmd: "ipconfig /flushdns", note: "DNSキャッシュフラッシュ" },
+      { cmd: "nslookup <HOST> <DNSSERVER>", note: "DNS問い合わせ" },
+      { cmd: "tracert -d <HOST>", note: "traceroute(名前解決なし)" },
+      { cmd: "pathping <HOST>", note: "tracert+パケットロス率" },
+      { cmd: "netstat -ano | findstr LISTENING", note: "LISTEN中ポート一覧" },
+      { cmd: "netstat -ano | findstr :<PORT>", note: "ポート番号で絞り込み" },
+      { cmd: "arp -a", note: "ARPテーブル表示" },
+      { cmd: "route print", note: "ルーティングテーブル" },
+    ]},
+    { label: "ファイル / システム", cmds: [
+      { cmd: "dir /s /b <DIR>\\*.<EXT>", note: "拡張子で再帰検索" },
+      { cmd: "findstr /s /i /n \"<PATTERN>\" <DIR>\\*.*", note: "ファイル内テキスト検索" },
+      { cmd: "robocopy <SRC> <DST> /MIR /Z /W:5 /R:3 /LOG:<LOG>", note: "ミラーコピー+ログ" },
+      { cmd: "sfc /scannow", note: "システムファイル整合性チェック" },
+      { cmd: "DISM /Online /Cleanup-Image /RestoreHealth", note: "Windowsイメージ修復" },
+      { cmd: "chkdsk <LETTER>: /f /r", note: "ディスクエラーチェック+修復" },
+      { cmd: "wmic product get name,version | findstr /i \"<PATTERN>\"", note: "インストール済みソフト検索" },
+      { cmd: "tasklist /FI \"STATUS eq RUNNING\" /V", note: "実行中プロセス詳細" },
+      { cmd: "taskkill /PID <PID> /F", note: "PID指定で強制終了" },
+      { cmd: "systeminfo | findstr /i \"boot\\|os\\|domain\"", note: "起動時刻/OS/ドメイン抽出" },
+    ]},
+  ]},
+];
+
+// ── helpers ──────────────────────────────────────────────
+function extractVarTokens(cmd) {
+  const counts = {};
+  return [...cmd.matchAll(/<([^>\n]+)>/g)].map(m => {
+    const name = m[1];
+    counts[name] = (counts[name] || 0);
+    return { name, idx: counts[name]++ };
+  });
+}
+function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function renderCmdText(raw, query) {
+  let s = escHtml(raw);
+  s = s.replace(/(&lt;)([^&\n]+)(&gt;)/g, (_, a, v, b) => `${a}<span class="var">${v}</span>${b}`);
+  s = s.replace(/(^|\s)(-[\w]+)/g, (_m,p1,p2) => p1 + `<span class="flag">${p2}</span>`);
+  if (query) {
+    const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    s = s.replace(re, '<mark>$1</mark>');
+  }
+  return s;
+}
+function buildVarForm(rawCmd) {
+  const tokens = extractVarTokens(rawCmd);
+  if (!tokens.length) return null;
+  const form = document.createElement('div'); form.className = 'var-form';
+  const fields = document.createElement('div'); fields.className = 'var-fields';
+  const inputs = {};
+  tokens.forEach(({ name, idx }) => {
+    const key = `${name}::${idx}`;
+    const cnt = tokens.filter(t => t.name === name).length;
+    const label = cnt > 1 ? `<${name}> ${idx+1}` : `<${name}>`;
+    const wrap = document.createElement('div'); wrap.className = 'var-field';
+    const lbl = document.createElement('span'); lbl.className = 'var-label'; lbl.textContent = label;
+    const inp = document.createElement('input'); inp.className = 'var-input'; inp.placeholder = name; inp.autocomplete = 'off'; inp.spellcheck = false;
+    inputs[key] = inp;
+    const paste = document.createElement('button'); paste.className = 'var-paste-btn'; paste.textContent = '📋'; paste.title = 'クリップボードから貼り付け';
+    paste.addEventListener('click', async e => {
+      e.stopPropagation();
+      try { inp.value = (await navigator.clipboard.readText()).trim(); inp.dispatchEvent(new Event('input')); } catch { inp.focus(); }
+    });
+    wrap.appendChild(lbl); wrap.appendChild(inp); wrap.appendChild(paste);
+    fields.appendChild(wrap);
+  });
+  const actions = document.createElement('div'); actions.className = 'form-actions';
+  const preview = document.createElement('span'); preview.className = 'preview-text';
+  const copyBtn = document.createElement('button'); copyBtn.className = 'form-copy-btn'; copyBtn.textContent = 'コピー';
+  const resetBtn = document.createElement('button'); resetBtn.className = 'form-reset-btn'; resetBtn.textContent = 'リセット';
+  function buildResult() {
+    const c = {};
+    return rawCmd.replace(/<([^>\n]+)>/g, (_, name) => {
+      c[name] = (c[name]||0);
+      const val = (inputs[`${name}::${c[name]++}`]||{}).value?.trim();
+      return val || `<${name}>`;
+    });
+  }
+  function updatePreview() { preview.textContent = buildResult(); }
+  Object.values(inputs).forEach(i => i.addEventListener('input', updatePreview));
+  updatePreview();
+  copyBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(buildResult()).then(() => {
+      copyBtn.textContent = '✓ コピー済'; copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = 'コピー'; copyBtn.classList.remove('copied'); }, 1200);
+    });
+  });
+  resetBtn.addEventListener('click', e => { e.stopPropagation(); Object.values(inputs).forEach(i => i.value=''); updatePreview(); });
+  actions.appendChild(preview); actions.appendChild(resetBtn); actions.appendChild(copyBtn);
+  form.addEventListener('click', e => e.stopPropagation());
+  form.addEventListener('mousedown', e => e.stopPropagation());
+  form.appendChild(fields); form.appendChild(actions);
+  return form;
+}
+
+// ── render ────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+const allCmdEls = [];
+data.forEach((section, si) => {
+  const secEl = document.createElement('div'); secEl.className = `section s${si}`;
+  secEl.innerHTML = `<div class="section-header">${section.name}</div>`;
+  const body = document.createElement('div'); body.className = 'section-body';
+  section.groups.forEach((g, gi) => {
+    if (gi > 0) { const d = document.createElement('div'); d.className = 'divider'; body.appendChild(d); }
+    const groupEl = document.createElement('div'); groupEl.className = 'group';
+    groupEl.innerHTML = `<div class="group-label">${g.label}</div>`;
+    g.cmds.forEach(c => {
+      const cmdEl = document.createElement('div'); cmdEl.className = 'cmd';
+      const hasVars = extractVarTokens(c.cmd).length > 0;
+      if (hasVars) cmdEl.classList.add('has-vars');
+      const row = document.createElement('div'); row.className = 'cmd-row';
+      const txtEl = document.createElement('div'); txtEl.className = 'cmd-text'; txtEl.innerHTML = renderCmdText(c.cmd, '');
+      const noteEl = document.createElement('div'); noteEl.className = 'cmd-note'; noteEl.textContent = c.note;
+      const copyBtn = document.createElement('button'); copyBtn.className = 'copy-btn'; copyBtn.textContent = '⎘'; copyBtn.title = 'コピー';
+      row.appendChild(txtEl); row.appendChild(noteEl); row.appendChild(copyBtn);
+      cmdEl.appendChild(row);
+      if (hasVars) {
+        cmdEl.appendChild(buildVarForm(c.cmd));
+        cmdEl.addEventListener('click', e => { if (e.target === copyBtn) return; cmdEl.classList.toggle('expanded'); });
+      }
+      copyBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(c.cmd).then(() => {
+          copyBtn.textContent = '✓'; copyBtn.classList.add('copied');
+          setTimeout(() => { copyBtn.textContent = '⎘'; copyBtn.classList.remove('copied'); }, 1200);
+        });
+      });
+      groupEl.appendChild(cmdEl);
+      allCmdEls.push({ el: cmdEl, rawCmd: c.cmd, rawNote: c.note, txtEl });
+    });
+    body.appendChild(groupEl);
+  });
+  secEl.appendChild(body); grid.appendChild(secEl);
+});
+
+// ── search ────────────────────────────────────────────────
+const searchInput = document.getElementById('search');
+const noResults = document.getElementById('noResults');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  allCmdEls.forEach(({ el, rawCmd, rawNote, txtEl }) => {
+    if (!q) { el.classList.remove('hidden'); txtEl.innerHTML = renderCmdText(rawCmd, ''); return; }
+    const match = rawCmd.toLowerCase().includes(q) || rawNote.toLowerCase().includes(q);
+    el.classList.toggle('hidden', !match);
+    txtEl.innerHTML = renderCmdText(rawCmd, match ? q : '');
+  });
+  document.querySelectorAll('.group').forEach(g => g.classList.toggle('hidden', ![...g.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden'))));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('hidden', ![...s.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden'))));
+  noResults.style.display = [...document.querySelectorAll('.section')].some(s => !s.classList.contains('hidden')) ? 'none' : 'block';
+});
+</script>
+</body>
+</html>
