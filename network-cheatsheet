@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network CLI Cheatsheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
+  :root {
+    --bg:#0a0c0f; --panel:#0f1318; --border:#1e2530;
+    --text:#c8d0dc; --dim:#5a6478; --accent:#00d4aa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;padding:16px;min-height:100vh;}
+
+  /* header */
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  h1{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--accent);text-transform:uppercase;white-space:nowrap;}
+  .search-wrap{flex:1;position:relative;}
+  .search-wrap input{width:100%;background:#0f1318;border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 10px 6px 28px;outline:none;transition:border-color .15s;}
+  .search-wrap input:focus{border-color:var(--accent);}
+  .search-wrap::before{content:'⌕';position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:14px;pointer-events:none;}
+  .no-results{color:var(--dim);padding:40px;text-align:center;display:none;}
+
+  /* grid */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .section.hidden{display:none;}
+  .section-header{padding:8px 14px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;}
+  .section:nth-child(1)  .section-header{background:rgba(0,212,170,.08);color:#00d4aa;border-bottom:1px solid rgba(0,212,170,.2);}
+  .section:nth-child(2)  .section-header{background:rgba(255,107,53,.08);color:#ff6b35;border-bottom:1px solid rgba(255,107,53,.2);}
+  .section:nth-child(3)  .section-header{background:rgba(123,140,222,.08);color:#7b8cde;border-bottom:1px solid rgba(123,140,222,.2);}
+  .section:nth-child(4)  .section-header{background:rgba(232,197,71,.08);color:#e8c547;border-bottom:1px solid rgba(232,197,71,.2);}
+  .section:nth-child(5)  .section-header{background:rgba(180,100,255,.08);color:#b464ff;border-bottom:1px solid rgba(180,100,255,.2);}
+  .section:nth-child(6)  .section-header{background:rgba(0,180,255,.08);color:#00b4ff;border-bottom:1px solid rgba(0,180,255,.2);}
+  .section:nth-child(7)  .section-header{background:rgba(255,200,0,.08);color:#ffc800;border-bottom:1px solid rgba(255,200,0,.2);}
+  .section:nth-child(8)  .section-header{background:rgba(80,220,120,.08);color:#50dc78;border-bottom:1px solid rgba(80,220,120,.2);}
+  .section:nth-child(9)  .section-header{background:rgba(255,80,160,.08);color:#ff50a0;border-bottom:1px solid rgba(255,80,160,.2);}
+  .section:nth-child(10) .section-header{background:rgba(0,212,170,.06);color:#00c49a;border-bottom:1px solid rgba(0,212,170,.15);}
+
+  .section-body{padding:10px 0;}
+  .group{margin-bottom:10px;}
+  .group.hidden{display:none;}
+  .group-label{color:var(--dim);font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:0 14px 4px;}
+  .divider{height:1px;background:var(--border);margin:6px 14px;}
+
+  /* cmd row */
+  .cmd{padding:3px 14px;transition:background .1s;cursor:pointer;}
+  .cmd:hover{background:rgba(255,255,255,.04);}
+  .cmd.expanded{background:rgba(255,255,255,.03);}
+  .cmd-row{display:flex;align-items:flex-start;gap:8px;}
+  .cmd-text{flex:1;color:#e0e8f0;word-break:break-all;white-space:pre-wrap;}
+  .cmd-text .var{color:#ff6b35;border-bottom:1px dashed rgba(255,107,53,.4);}
+  .cmd-text .flag{color:#7b8cde;}
+  .cmd-text mark{background:rgba(232,197,71,.25);color:#e8c547;border-radius:2px;}
+  .cmd-note{color:var(--dim);font-size:10px;min-width:130px;text-align:right;padding-top:1px;flex-shrink:0;}
+  .copy-btn{background:none;border:none;color:var(--dim);cursor:pointer;padding:0 2px;font-size:11px;transition:color .15s;flex-shrink:0;}
+  .copy-btn:hover{color:var(--accent);}
+  .copy-btn.copied{color:var(--accent);}
+
+  /* var form */
+  .var-form{display:none;margin-top:6px;padding:8px 10px;background:rgba(0,0,0,.3);border-radius:4px;border:1px solid var(--border);}
+  .cmd.expanded .var-form{display:block;}
+  .var-fields{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .var-field{display:flex;align-items:center;gap:4px;}
+  .var-label{color:#ff6b35;font-size:11px;white-space:nowrap;}
+  .var-input{background:#0a0c0f;border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 6px;width:120px;outline:none;transition:border-color .15s;}
+  .var-input:focus{border-color:#ff6b35;}
+  .var-paste-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:10px;padding:2px 5px;transition:all .15s;}
+  .var-paste-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .form-actions{display:flex;gap:6px;align-items:center;}
+  .form-copy-btn{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:3px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;transition:all .15s;}
+  .form-copy-btn:hover{background:rgba(0,212,170,.2);}
+  .form-copy-btn.copied{background:rgba(0,212,170,.2);color:#fff;}
+  .form-reset-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:11px;padding:4px 8px;transition:all .15s;}
+  .form-reset-btn:hover{border-color:var(--dim);color:var(--text);}
+  .preview-text{flex:1;color:var(--dim);font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>CLI Cheatsheet</h1>
+  <div class="search-wrap"><input type="text" id="search" placeholder="コマンド・注釈・セクションを検索..." autocomplete="off" spellcheck="false"></div>
+</div>
+<div class="no-results" id="noResults">一致するコマンドが見つかりません</div>
+<div class="grid" id="grid"></div>
+<script>
+const data = [
+  { name: "OPENSSL", groups: [
+    { label: "Certificate Inspection", cmds: [
+      { cmd: "openssl x509 -in <FILE>.crt -noout -text", note: "cert 詳細表示" },
+      { cmd: "openssl x509 -in <FILE>.crt -noout -dates", note: "有効期限" },
+      { cmd: "openssl x509 -in <FILE>.crt -noout -subject -issuer", note: "subject/issuer" },
+      { cmd: "openssl x509 -in <FILE>.crt -noout -fingerprint -sha256", note: "SHA256 指紋" },
+    ]},
+    { label: "Remote Check", cmds: [
+      { cmd: "echo | openssl s_client -connect <HOST>:443 2>/dev/null | openssl x509 -noout -dates", note: "リモート期限確認" },
+      { cmd: "openssl s_client -connect <HOST>:443 -servername <HOST> 2>/dev/null | openssl x509 -noout -text", note: "SNI対応確認" },
+      { cmd: "openssl s_client -connect <HOST>:443 </dev/null 2>&1 | grep -E 'verify|Cipher'", note: "検証結果+Cipher" },
+    ]},
+    { label: "Key & CSR", cmds: [
+      { cmd: "openssl genrsa -out <KEY>.key 4096", note: "RSA4096鍵生成" },
+      { cmd: "openssl req -new -key <KEY>.key -out <REQ>.csr", note: "CSR生成" },
+      { cmd: "openssl req -text -noout -in <REQ>.csr", note: "CSR確認" },
+      { cmd: "openssl ecparam -name prime256v1 -genkey -noout -out <KEY>.key", note: "ECDSA鍵生成" },
+    ]},
+    { label: "Encode / Hash", cmds: [
+      { cmd: "openssl enc -aes-256-cbc -pbkdf2 -in <FILE> -out <FILE>.enc", note: "AES暗号化" },
+      { cmd: "openssl enc -d -aes-256-cbc -pbkdf2 -in <FILE>.enc -out <FILE>", note: "復号" },
+      { cmd: "openssl dgst -sha256 <FILE>", note: "SHA256ハッシュ" },
+      { cmd: "openssl rand -hex 32", note: "乱数32byte(hex)" },
+    ]},
+  ]},
+  { name: "GPG", groups: [
+    { label: "Key Management", cmds: [
+      { cmd: "gpg --full-generate-key", note: "鍵生成(対話)" },
+      { cmd: "gpg --list-keys", note: "公開鍵一覧" },
+      { cmd: "gpg --list-secret-keys --keyid-format LONG", note: "秘密鍵一覧(LONG ID)" },
+      { cmd: "gpg --export -a <KEY-ID> > pub.asc", note: "公開鍵エクスポート" },
+      { cmd: "gpg --export-secret-keys -a <KEY-ID> > sec.asc", note: "秘密鍵エクスポート" },
+      { cmd: "gpg --import <FILE>.asc", note: "鍵インポート" },
+      { cmd: "gpg --delete-secret-and-public-key <KEY-ID>", note: "鍵削除" },
+    ]},
+    { label: "Encrypt / Decrypt", cmds: [
+      { cmd: "gpg -r <KEY-ID> -e <FILE>", note: "公開鍵暗号化→.gpg" },
+      { cmd: "gpg -d <FILE>.gpg > <OUT>", note: "復号" },
+      { cmd: "gpg --symmetric --cipher-algo AES256 <FILE>", note: "パスフレーズ対称暗号" },
+    ]},
+    { label: "Sign / Verify", cmds: [
+      { cmd: "gpg --detach-sign -a <FILE>", note: "分離署名→.asc" },
+      { cmd: "gpg --verify <FILE>.asc <FILE>", note: "署名検証" },
+      { cmd: "gpg --clearsign <FILE>", note: "クリア署名" },
+    ]},
+    { label: "Keyserver", cmds: [
+      { cmd: "gpg --keyserver keys.openpgp.org --recv-keys <KEY-ID>", note: "キーサーバから取得" },
+      { cmd: "gpg --send-keys --keyserver keys.openpgp.org <KEY-ID>", note: "送信" },
+      { cmd: "gpg --fingerprint <KEY-ID>", note: "フィンガープリント確認" },
+    ]},
+  ]},
+  { name: "AWK", groups: [
+    { label: "Basic", cmds: [
+      { cmd: "awk '{print $1, $3}' <FILE>", note: "列1,3を出力" },
+      { cmd: "awk -F: '{print $1}' /etc/passwd", note: "delim指定" },
+      { cmd: "awk 'NR==2,NR==5' <FILE>", note: "行2~5を出力" },
+      { cmd: "awk 'NF>3' <FILE>", note: "列数3超の行" },
+      { cmd: "awk 'length($0)>80' <FILE>", note: "80文字超の行" },
+    ]},
+    { label: "Filter / Match", cmds: [
+      { cmd: "awk '/PATTERN/' <FILE>", note: "regex一致行" },
+      { cmd: "awk '!/PATTERN/' <FILE>", note: "regex非一致行" },
+      { cmd: "awk '$3 ~ /ERR/' <FILE>", note: "列3がERRを含む" },
+      { cmd: "awk '$2 > 100 && $2 < 500' <FILE>", note: "数値範囲" },
+    ]},
+    { label: "Aggregate", cmds: [
+      { cmd: "awk '{sum+=$1} END{print sum}' <FILE>", note: "列1の合計" },
+      { cmd: "awk '{c[$1]++} END{for(k in c) print c[k],k}' <FILE>", note: "頻度カウント" },
+      { cmd: "awk 'BEGIN{max=0} $1>max{max=$1} END{print max}' <FILE>", note: "最大値" },
+    ]},
+    { label: "Transform / Format", cmds: [
+      { cmd: "awk '{gsub(/foo/,\"bar\"); print}' <FILE>", note: "gsub置換" },
+      { cmd: "awk 'BEGIN{OFS=\",\"} {print $1,$2,$3}' <FILE>", note: "CSV出力" },
+      { cmd: "awk '{printf \"%-20s %5d\\n\",$1,$2}' <FILE>", note: "整形printf" },
+      { cmd: "awk 'NR%2==0' <FILE>", note: "偶数行のみ" },
+      { cmd: "awk 'FNR==1{print FILENAME} {print}' *.log", note: "複数ファイル+ファイル名" },
+    ]},
+  ]},
+  { name: "NFT (nftables)", groups: [
+    { label: "Ruleset I/O", cmds: [
+      { cmd: "nft list ruleset", note: "ルール全表示" },
+      { cmd: "nft list ruleset > /etc/nftables.conf", note: "エクスポート" },
+      { cmd: "nft -f /etc/nftables.conf", note: "ファイルから適用" },
+      { cmd: "nft flush ruleset", note: "ルール全消去" },
+    ]},
+    { label: "Table / Chain", cmds: [
+      { cmd: "nft add table inet filter", note: "テーブル作成(dual stack)" },
+      { cmd: "nft add chain inet filter input '{ type filter hook input priority 0; policy drop; }'", note: "input chain(default drop)" },
+      { cmd: "nft add chain inet filter forward '{ type filter hook forward priority 0; policy drop; }'", note: "forward chain" },
+      { cmd: "nft add chain inet filter output '{ type filter hook output priority 0; policy accept; }'", note: "output chain" },
+      { cmd: "nft delete chain inet filter input", note: "chain削除" },
+    ]},
+    { label: "Rule Add", cmds: [
+      { cmd: "nft add rule inet filter input ct state established,related accept", note: "established許可" },
+      { cmd: "nft add rule inet filter input iif lo accept", note: "loopback許可" },
+      { cmd: "nft add rule inet filter input tcp dport 22 accept", note: "SSH許可" },
+      { cmd: "nft add rule inet filter input tcp dport { 80, 443 } accept", note: "HTTP/HTTPS許可" },
+      { cmd: "nft add rule inet filter input ip saddr 192.168.0.0/24 accept", note: "サブネット許可" },
+      { cmd: "nft add rule inet filter input drop", note: "残りをdrop" },
+    ]},
+    { label: "Rule Edit / Handle", cmds: [
+      { cmd: "nft list chain inet filter input -a", note: "handle番号付き表示" },
+      { cmd: "nft delete rule inet filter input handle <N>", note: "handle指定削除" },
+      { cmd: "nft insert rule inet filter input handle <N> tcp dport 8080 accept", note: "handle前に挿入" },
+    ]},
+    { label: "NAT", cmds: [
+      { cmd: "nft add table ip nat", note: "NATテーブル作成" },
+      { cmd: "nft add chain ip nat postrouting '{ type nat hook postrouting priority 100; }'", note: "POSTROUTING chain" },
+      { cmd: "nft add rule ip nat postrouting oif <ETH> masquerade", note: "MASQUERADE(SNAT)" },
+      { cmd: "nft add chain ip nat prerouting '{ type nat hook prerouting priority -100; }'", note: "PREROUTING chain" },
+      { cmd: "nft add rule ip nat prerouting tcp dport 80 dnat to 192.168.1.10:8080", note: "DNAT(ポート転送)" },
+    ]},
+  ]},
+  { name: "LDAP (ldap-utils)", groups: [
+    { label: "Search", cmds: [
+      { cmd: "ldapsearch -x -H ldap://<HOST> -b \"<BASE_DN>\" \"(objectClass=*)\"", note: "匿名バインド・全エントリ" },
+      { cmd: "ldapsearch -x -H ldap://<HOST> -D \"<BIND_DN>\" -W -b \"<BASE_DN>\" \"(uid=<USER>)\"", note: "認証バインド・uid検索" },
+      { cmd: "ldapsearch -x -H ldaps://<HOST>:636 -b \"<BASE_DN>\" -LLL \"(cn=<n>)\"", note: "LDAPS・LDIFクリーン出力" },
+      { cmd: "ldapsearch -x -H ldap://<HOST> -b \"<BASE_DN>\" \"(objectClass=posixAccount)\" uid uidNumber homeDirectory", note: "属性絞り込み" },
+      { cmd: "ldapsearch -x -H ldap://<HOST> -b \"<BASE_DN>\" \"(memberOf=cn=<GROUP>,<BASE_DN>)\"", note: "グループメンバ検索" },
+      { cmd: "ldapsearch -x -H ldap://<HOST> -b \"<BASE_DN>\" -s one \"(objectClass=*)\"", note: "scope=one(1階層のみ)" },
+    ]},
+    { label: "Modify", cmds: [
+      { cmd: "ldapadd    -x -H ldap://<HOST> -D \"<BIND_DN>\" -W -f <FILE>.ldif", note: "LDIFからエントリ追加" },
+      { cmd: "ldapmodify -x -H ldap://<HOST> -D \"<BIND_DN>\" -W -f <FILE>.ldif", note: "LDIFから変更適用" },
+      { cmd: "ldapdelete -x -H ldap://<HOST> -D \"<BIND_DN>\" -W \"<ENTRY_DN>\"", note: "エントリ削除" },
+      { cmd: "ldappasswd -x -H ldap://<HOST> -D \"<BIND_DN>\" -W -s <NEWPASS> \"<ENTRY_DN>\"", note: "パスワード変更" },
+    ]},
+    { label: "LDIF Examples", cmds: [
+      { cmd: "dn: uid=<USER>,ou=people,<BASE_DN>\nchangetype: modify\nreplace: mail\nmail: <NEW@MAIL>", note: "属性変更LDIF雛形" },
+      { cmd: "dn: cn=<GROUP>,ou=groups,<BASE_DN>\nchangetype: modify\nadd: member\nmember: uid=<USER>,ou=people,<BASE_DN>", note: "グループにメンバ追加" },
+    ]},
+    { label: "TLS / Debug", cmds: [
+      { cmd: "LDAPTLS_REQCERT=never ldapsearch -x -H ldaps://<HOST>:636 -b \"<BASE_DN>\" \"(objectClass=*)\"", note: "TLS証明書検証スキップ" },
+      { cmd: "ldapsearch -x -H ldap://<HOST> -b \"<BASE_DN>\" -ZZ \"(objectClass=*)\"", note: "STARTTLS強制(-ZZ)" },
+      { cmd: "ldapsearch -x -H ldap://<HOST> -b \"\" -s base \"+\" namingContexts", note: "RootDSE確認" },
+      { cmd: "ldapsearch -x -H ldap://<HOST> -b \"cn=schema,cn=config\" -LLL \"(objectClass=olcSchemaConfig)\"", note: "スキーマ確認(OpenLDAP)" },
+    ]},
+  ]},
+  { name: "DIG", groups: [
+    { label: "Basic Query", cmds: [
+      { cmd: "dig <DOMAIN>", note: "Aレコード(デフォルト)" },
+      { cmd: "dig <DOMAIN> AAAA", note: "AAAAレコード" },
+      { cmd: "dig <DOMAIN> MX", note: "MXレコード" },
+      { cmd: "dig <DOMAIN> NS", note: "NSレコード" },
+      { cmd: "dig <DOMAIN> TXT", note: "TXTレコード" },
+      { cmd: "dig <DOMAIN> SOA", note: "SOAレコード" },
+      { cmd: "dig <DOMAIN> ANY", note: "全レコード(サーバ依存)" },
+      { cmd: "dig -x <IP>", note: "逆引き(PTR)" },
+    ]},
+    { label: "サーバ / トレース指定", cmds: [
+      { cmd: "dig @<NS> <DOMAIN>", note: "NSサーバ指定" },
+      { cmd: "dig @8.8.8.8 <DOMAIN>", note: "Google DNSで解決" },
+      { cmd: "dig @1.1.1.1 <DOMAIN> +tls", note: "DNS over TLS(DoT)" },
+      { cmd: "dig @https://1.1.1.1/dns-query <DOMAIN> +https", note: "DNS over HTTPS(DoH)" },
+      { cmd: "dig <DOMAIN> +trace", note: "ルートからフルトレース" },
+      { cmd: "dig <DOMAIN> +trace +additional", note: "トレース+Additionalレコード" },
+    ]},
+    { label: "出力制御", cmds: [
+      { cmd: "dig <DOMAIN> +short", note: "結果のみ簡易表示" },
+      { cmd: "dig <DOMAIN> +noall +answer", note: "Answerセクションのみ" },
+      { cmd: "dig <DOMAIN> +noall +answer +authority", note: "Answer+Authorityセクション" },
+      { cmd: "dig <DOMAIN> +stats", note: "クエリ統計表示" },
+      { cmd: "dig <DOMAIN> +nocdflag +dnssec", note: "DNSSECレコード確認" },
+      { cmd: "dig <DOMAIN> +multiline SOA", note: "SOAを整形表示" },
+    ]},
+    { label: "バッチ / 応用", cmds: [
+      { cmd: "dig -f <QUERYLIST>.txt +short", note: "ファイルからバッチクエリ" },
+      { cmd: "dig <DOMAIN> +tries=1 +time=2", note: "タイムアウト短縮" },
+      { cmd: "dig <DOMAIN> +tcp", note: "TCP強制(大きなレスポンス)" },
+      { cmd: "dig <DOMAIN> +subnet=<IP>/24", note: "EDNS Client Subnet指定" },
+      { cmd: "dig axfr <DOMAIN> @<NS>", note: "ゾーン転送(AXFR)" },
+      { cmd: "for d in $(cat <DOMAINS>.txt); do dig +short $d; done", note: "ドメインリストを一括解決" },
+    ]},
+  ]},
+  { name: "CURL", groups: [
+    { label: "Basic Request", cmds: [
+      { cmd: "curl -I <URL>", note: "HEADのみ" },
+      { cmd: "curl -sv <URL>", note: "verbose+TLS詳細" },
+      { cmd: "curl -o <FILE> -L <URL>", note: "リダイレクト追跡・保存" },
+      { cmd: "curl -C - -o <FILE> <URL>", note: "レジューム" },
+      { cmd: "curl --limit-rate 1M -o <FILE> <URL>", note: "帯域制限" },
+    ]},
+    { label: "Headers / Auth", cmds: [
+      { cmd: "curl -H \"Authorization: Bearer <TOKEN>\" <URL>", note: "Bearerトークン" },
+      { cmd: "curl -H \"Content-Type: application/json\" -d '{\"key\":\"val\"}' -X POST <URL>", note: "JSON POST" },
+      { cmd: "curl -u <USER>:<PASS> <URL>", note: "Basic認証" },
+      { cmd: "curl -b \"session=<VAL>\" <URL>", note: "Cookie送信" },
+      { cmd: "curl -c cookies.txt -b cookies.txt <URL>", note: "Cookie保存&送信" },
+    ]},
+    { label: "TLS / Proxy", cmds: [
+      { cmd: "curl -k <URL>", note: "TLS検証スキップ" },
+      { cmd: "curl --cacert <CA>.crt <URL>", note: "CA指定" },
+      { cmd: "curl --cert <CERT>.crt --key <KEY>.key <URL>", note: "クライアント証明書" },
+      { cmd: "curl -x http://<PROXY>:8080 <URL>", note: "HTTPプロキシ経由" },
+      { cmd: "curl --resolve <HOST>:443:<IP> https://<HOST>/", note: "DNS解決を上書き" },
+    ]},
+    { label: "Timing / Debug", cmds: [
+      { cmd: "curl -w \"%{http_code} %{time_total}\\n\" -o /dev/null -s <URL>", note: "ステータス+応答時間" },
+      { cmd: "curl -w \"dns:%{time_namelookup} tcp:%{time_connect} ttfb:%{time_starttransfer} total:%{time_total}\\n\" -o /dev/null -s <URL>", note: "詳細タイミング" },
+      { cmd: "curl -D - -o /dev/null -s <URL>", note: "レスポンスヘッダのみ" },
+    ]},
+  ]},
+  { name: "TCPDUMP", groups: [
+    { label: "Capture", cmds: [
+      { cmd: "tcpdump -i <IF> -nn", note: "IF指定・名前解決無効" },
+      { cmd: "tcpdump -i <IF> -w <FILE>.pcap", note: "pcap保存" },
+      { cmd: "tcpdump -r <FILE>.pcap", note: "pcap読み込み" },
+      { cmd: "tcpdump -i <IF> -nn -c 100", note: "100パケットで停止" },
+      { cmd: "tcpdump -i any -nn", note: "全インタフェース" },
+      { cmd: "tcpdump -i <IF> -G 3600 -w /tmp/cap_%Y%m%d%H.pcap", note: "1時間ごとローテ" },
+    ]},
+    { label: "Filter (BPF)", cmds: [
+      { cmd: "tcpdump -i <IF> host <IP>", note: "ホスト絞り込み" },
+      { cmd: "tcpdump -i <IF> src <IP> and dst port 443", note: "src+dstポート" },
+      { cmd: "tcpdump -i <IF> tcp port 80 or port 443", note: "HTTP/HTTPS" },
+      { cmd: "tcpdump -i <IF> not port 22", note: "SSH除外" },
+      { cmd: "tcpdump -i <IF> net 192.168.0.0/24", note: "サブネット絞り込み" },
+      { cmd: "tcpdump -i <IF> 'tcp[tcpflags] & tcp-syn != 0'", note: "SYNのみ" },
+      { cmd: "tcpdump -i <IF> 'tcp[tcpflags] & (tcp-rst|tcp-fin) != 0'", note: "RST/FIN" },
+    ]},
+    { label: "Output / Decode", cmds: [
+      { cmd: "tcpdump -i <IF> -nn -A port 80", note: "ASCIIペイロード" },
+      { cmd: "tcpdump -i <IF> -nn -X port 80", note: "HEX+ASCIIペイロード" },
+      { cmd: "tcpdump -i <IF> -nn -e", note: "MACアドレス表示" },
+      { cmd: "tcpdump -i <IF> -nn -tttt", note: "人間可読タイムスタンプ" },
+    ]},
+  ]},
+  { name: "JQ", groups: [
+    { label: "Basic", cmds: [
+      { cmd: "jq . <FILE>.json", note: "整形表示" },
+      { cmd: "jq -c . <FILE>.json", note: "コンパクト出力" },
+      { cmd: "jq -r '.key' <FILE>.json", note: "raw文字列出力" },
+      { cmd: "jq '.[].name' <FILE>.json", note: "配列要素のname" },
+      { cmd: "jq '.[2]' <FILE>.json", note: "配列インデックス" },
+      { cmd: "jq '.a.b.c' <FILE>.json", note: "ネストアクセス" },
+      { cmd: "jq 'length' <FILE>.json", note: "配列長/文字列長" },
+    ]},
+    { label: "Filter / Select", cmds: [
+      { cmd: "jq '.[] | select(.status == \"active\")' <FILE>.json", note: "条件フィルタ" },
+      { cmd: "jq '.[] | select(.age > 30)' <FILE>.json", note: "数値比較" },
+      { cmd: "jq '.[] | select(.name | test(\"^foo\"))' <FILE>.json", note: "regex一致" },
+      { cmd: "jq '.[] | select(.tags | contains([\"admin\"]))' <FILE>.json", note: "配列contains" },
+      { cmd: "jq 'to_entries | .[] | select(.value == null)' <FILE>.json", note: "null値のキー検出" },
+    ]},
+    { label: "Transform", cmds: [
+      { cmd: "jq '[.[] | {name,id}]' <FILE>.json", note: "列射影・配列再構築" },
+      { cmd: "jq '[.[] | .value] | add' <FILE>.json", note: "数値合計" },
+      { cmd: "jq 'sort_by(.created_at) | reverse | .[0]' <FILE>.json", note: "最新1件" },
+      { cmd: "jq -r '.[] | [.id,.name,.status] | @csv' <FILE>.json", note: "CSV出力" },
+      { cmd: "jq -r '.[] | [.id,.name] | @tsv' <FILE>.json", note: "TSV出力" },
+    ]},
+    { label: "Misc", cmds: [
+      { cmd: "jq 'keys' <FILE>.json", note: "キー一覧" },
+      { cmd: "jq 'has(\"field\")' <FILE>.json", note: "キー存在確認" },
+      { cmd: "jq --arg v <VAL> '.[] | select(.k == $v)' <FILE>.json", note: "bash変数渡し" },
+      { cmd: "jq -s '.[0] * .[1]' a.json b.json", note: "JSONマージ" },
+      { cmd: "curl -s <URL> | jq -r '.[].name'", note: "curl+jq連携" },
+    ]},
+  ]},
+  { name: "SS / IP", groups: [
+    { label: "ss: Socket", cmds: [
+      { cmd: "ss -tlnp", note: "TCP LISTEN+プロセス" },
+      { cmd: "ss -ulnp", note: "UDP LISTEN+プロセス" },
+      { cmd: "ss -tnp state established", note: "TCP established" },
+      { cmd: "ss -tnp dst <IP>", note: "宛先IPで絞り込み" },
+      { cmd: "ss -tnp sport = :<PORT>", note: "srcポートで絞り込み" },
+      { cmd: "ss -s", note: "ソケット統計サマリ" },
+      { cmd: "ss -xnp", note: "UNIXソケット+プロセス" },
+    ]},
+    { label: "ip: Address / Link", cmds: [
+      { cmd: "ip -br a", note: "アドレス一覧(簡易)" },
+      { cmd: "ip addr show dev <IF>", note: "IF指定詳細" },
+      { cmd: "ip addr add <IP>/<PREFIX> dev <IF>", note: "IPアドレス追加" },
+      { cmd: "ip addr del <IP>/<PREFIX> dev <IF>", note: "IPアドレス削除" },
+      { cmd: "ip link set <IF> up", note: "インタフェースUP" },
+      { cmd: "ip link set <IF> down", note: "インタフェースDOWN" },
+      { cmd: "ip -s link show <IF>", note: "パケット統計表示" },
+    ]},
+    { label: "ip: Route", cmds: [
+      { cmd: "ip route show", note: "ルーティングテーブル" },
+      { cmd: "ip route get <IP>", note: "<IP>への経路確認" },
+      { cmd: "ip route add <NET>/<PREFIX> via <GW> dev <IF>", note: "スタティックルート追加" },
+      { cmd: "ip route del <NET>/<PREFIX>", note: "ルート削除" },
+      { cmd: "ip route add default via <GW>", note: "デフォルトGW設定" },
+    ]},
+    { label: "ip: Neighbor / NS", cmds: [
+      { cmd: "ip neigh show", note: "ARPテーブル表示" },
+      { cmd: "ip neigh flush dev <IF>", note: "ARPキャッシュフラッシュ" },
+      { cmd: "ip -j route show | jq .", note: "JSON出力(jq連携)" },
+      { cmd: "ip netns list", note: "ネットワーク名前空間一覧" },
+      { cmd: "ip netns exec <NS> <CMD>", note: "名前空間内でコマンド実行" },
+    ]},
+  ]},
+];
+
+// ── helpers ──────────────────────────────────────────────
+function extractVars(cmd) {
+  const matches = [...cmd.matchAll(/<([^>\n]+)>/g)];
+  const seen = new Set();
+  return matches.map(m => m[1]).filter(v => { if(seen.has(v)) return false; seen.add(v); return true; });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function renderCmdText(raw, query) {
+  let s = escHtml(raw);
+  // var highlight
+  s = s.replace(/(&lt;)([^&\n]+)(&gt;)/g, (_, a, v, b) => `${a}<span class="var">${v}</span>${b}`);
+  // flag highlight
+  s = s.replace(/(^|\s)(--?[\w-]+)/g, (_m,p1,p2) => p1 + `<span class="flag">${p2}</span>`);
+  // search highlight
+  if (query) {
+    const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    s = s.replace(re, '<mark>$1</mark>');
+  }
+  return s;
+}
+
+function buildVarForm(cmdEl, rawCmd) {
+  const vars = extractVars(rawCmd);
+  if (!vars.length) return null;
+
+  const form = document.createElement('div');
+  form.className = 'var-form';
+
+  const fields = document.createElement('div');
+  fields.className = 'var-fields';
+
+  const inputs = {};
+  vars.forEach(v => {
+    const wrap = document.createElement('div');
+    wrap.className = 'var-field';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'var-label';
+    lbl.textContent = `<${v}>`;
+
+    const inp = document.createElement('input');
+    inp.className = 'var-input';
+    inp.placeholder = v;
+    inp.autocomplete = 'off';
+    inp.spellcheck = false;
+    inputs[v] = inp;
+
+    const paste = document.createElement('button');
+    paste.className = 'var-paste-btn';
+    paste.textContent = '📋';
+    paste.title = 'クリップボードから貼り付け';
+    paste.addEventListener('click', async e => {
+      e.stopPropagation();
+      try {
+        const txt = await navigator.clipboard.readText();
+        inp.value = txt.trim();
+        inp.dispatchEvent(new Event('input'));
+      } catch { inp.focus(); }
+    });
+
+    wrap.appendChild(lbl);
+    wrap.appendChild(inp);
+    wrap.appendChild(paste);
+    fields.appendChild(wrap);
+  });
+
+  // preview + copy
+  const actions = document.createElement('div');
+  actions.className = 'form-actions';
+
+  const preview = document.createElement('span');
+  preview.className = 'preview-text';
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'form-copy-btn';
+  copyBtn.textContent = 'コピー';
+
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'form-reset-btn';
+  resetBtn.textContent = 'リセット';
+
+  function buildResult() {
+    let r = rawCmd;
+    vars.forEach(v => {
+      const val = inputs[v].value.trim();
+      if (val) r = r.split(`<${v}>`).join(val);
+    });
+    return r;
+  }
+
+  function updatePreview() {
+    preview.textContent = buildResult();
+  }
+
+  vars.forEach(v => inputs[v].addEventListener('input', updatePreview));
+  updatePreview();
+
+  copyBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(buildResult()).then(() => {
+      copyBtn.textContent = '✓ コピー済';
+      copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = 'コピー'; copyBtn.classList.remove('copied'); }, 1200);
+    });
+  });
+
+  resetBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    vars.forEach(v => { inputs[v].value = ''; });
+    updatePreview();
+  });
+
+  actions.appendChild(preview);
+  actions.appendChild(resetBtn);
+  actions.appendChild(copyBtn);
+  form.appendChild(fields);
+  form.appendChild(actions);
+  return form;
+}
+
+// ── render ────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+const allCmdEls = []; // { el, rawCmd, rawNote, sectionName, groupEl }
+
+data.forEach((section, si) => {
+  const secEl = document.createElement('div');
+  secEl.className = 'section';
+  secEl.innerHTML = `<div class="section-header">${section.name}</div>`;
+  const body = document.createElement('div');
+  body.className = 'section-body';
+
+  section.groups.forEach((g, gi) => {
+    if (gi > 0) { const d = document.createElement('div'); d.className = 'divider'; body.appendChild(d); }
+    const groupEl = document.createElement('div');
+    groupEl.className = 'group';
+    groupEl.innerHTML = `<div class="group-label">${g.label}</div>`;
+
+    g.cmds.forEach((c, ci) => {
+      const cmdEl = document.createElement('div');
+      cmdEl.className = 'cmd';
+
+      const hasVars = extractVars(c.cmd).length > 0;
+
+      const row = document.createElement('div');
+      row.className = 'cmd-row';
+
+      const txtEl = document.createElement('div');
+      txtEl.className = 'cmd-text';
+      txtEl.innerHTML = renderCmdText(c.cmd, '');
+
+      const noteEl = document.createElement('div');
+      noteEl.className = 'cmd-note';
+      noteEl.textContent = c.note;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = '⎘';
+      copyBtn.title = 'コピー';
+
+      row.appendChild(txtEl);
+      row.appendChild(noteEl);
+      row.appendChild(copyBtn);
+      cmdEl.appendChild(row);
+
+      // var form
+      let form = null;
+      if (hasVars) {
+        form = buildVarForm(cmdEl, c.cmd);
+        cmdEl.appendChild(form);
+        txtEl.title = 'クリックしてVAR補完';
+        cmdEl.style.cursor = 'pointer';
+      }
+
+      // toggle expand
+      cmdEl.addEventListener('click', e => {
+        if (e.target === copyBtn) return;
+        if (!hasVars) return;
+        const open = cmdEl.classList.toggle('expanded');
+        if (!open) { /* collapsed */ }
+      });
+
+      // quick copy (no vars)
+      copyBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(c.cmd).then(() => {
+          copyBtn.textContent = '✓';
+          copyBtn.classList.add('copied');
+          setTimeout(() => { copyBtn.textContent = '⎘'; copyBtn.classList.remove('copied'); }, 1200);
+        });
+      });
+
+      groupEl.appendChild(cmdEl);
+      allCmdEls.push({ el: cmdEl, rawCmd: c.cmd, rawNote: c.note, sectionName: section.name, groupEl, txtEl });
+    });
+
+    body.appendChild(groupEl);
+  });
+
+  secEl.appendChild(body);
+  grid.appendChild(secEl);
+});
+
+// ── search ────────────────────────────────────────────────
+const searchInput = document.getElementById('search');
+const noResults = document.getElementById('noResults');
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+
+  allCmdEls.forEach(({ el, rawCmd, rawNote, txtEl }) => {
+    if (!q) {
+      el.classList.remove('hidden');
+      txtEl.innerHTML = renderCmdText(rawCmd, '');
+      return;
+    }
+    const match = rawCmd.toLowerCase().includes(q) || rawNote.toLowerCase().includes(q);
+    el.classList.toggle('hidden', !match);
+    txtEl.innerHTML = renderCmdText(rawCmd, match ? q : '');
+  });
+
+  // hide empty groups / sections
+  document.querySelectorAll('.group').forEach(g => {
+    const vis = [...g.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden'));
+    g.classList.toggle('hidden', !vis);
+  });
+  document.querySelectorAll('.section').forEach(s => {
+    const vis = [...s.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden'));
+    s.classList.toggle('hidden', !vis);
+  });
+
+  const anyVis = [...document.querySelectorAll('.section')].some(s => !s.classList.contains('hidden'));
+  noResults.style.display = anyVis ? 'none' : 'block';
+});
+</script>
+</body>
+</html>

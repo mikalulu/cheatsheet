@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infra CLI Cheatsheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
+  :root { --bg:#0a0c0f; --panel:#0f1318; --border:#1e2530; --text:#c8d0dc; --dim:#5a6478; --accent:#00d4aa; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;padding:16px;min-height:100vh;}
+
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  h1{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--accent);text-transform:uppercase;white-space:nowrap;}
+  .search-wrap{flex:1;position:relative;}
+  .search-wrap input{width:100%;background:#0f1318;border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 10px 6px 28px;outline:none;transition:border-color .15s;}
+  .search-wrap input:focus{border-color:var(--accent);}
+  .search-wrap::before{content:'⌕';position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:14px;pointer-events:none;}
+  .no-results{color:var(--dim);padding:40px;text-align:center;display:none;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .section.hidden{display:none;}
+  .section-header{padding:8px 14px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;}
+  .s0 .section-header{background:rgba(0,212,170,.08);color:#00d4aa;border-bottom:1px solid rgba(0,212,170,.2);}
+  .s1 .section-header{background:rgba(255,107,53,.08);color:#ff6b35;border-bottom:1px solid rgba(255,107,53,.2);}
+  .s2 .section-header{background:rgba(123,140,222,.08);color:#7b8cde;border-bottom:1px solid rgba(123,140,222,.2);}
+  .s3 .section-header{background:rgba(232,197,71,.08);color:#e8c547;border-bottom:1px solid rgba(232,197,71,.2);}
+  .s4 .section-header{background:rgba(180,100,255,.08);color:#b464ff;border-bottom:1px solid rgba(180,100,255,.2);}
+  .s5 .section-header{background:rgba(0,180,255,.08);color:#00b4ff;border-bottom:1px solid rgba(0,180,255,.2);}
+  .s6 .section-header{background:rgba(255,200,0,.08);color:#ffc800;border-bottom:1px solid rgba(255,200,0,.2);}
+  .s7 .section-header{background:rgba(80,220,120,.08);color:#50dc78;border-bottom:1px solid rgba(80,220,120,.2);}
+
+  .section-body{padding:10px 0;}
+  .group{margin-bottom:10px;}
+  .group.hidden{display:none;}
+  .group-label{color:var(--dim);font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:0 14px 4px;}
+  .divider{height:1px;background:var(--border);margin:6px 14px;}
+
+  .cmd{padding:3px 14px;transition:background .1s;cursor:default;}
+  .cmd:hover{background:rgba(255,255,255,.04);}
+  .cmd.has-vars{cursor:pointer;}
+  .cmd.expanded{background:rgba(255,255,255,.03);}
+  .cmd.hidden{display:none;}
+  .cmd-row{display:flex;align-items:flex-start;gap:8px;}
+  .cmd-text{flex:1;color:#e0e8f0;word-break:break-all;white-space:pre-wrap;}
+  .cmd-text .var{color:#ff6b35;border-bottom:1px dashed rgba(255,107,53,.4);}
+  .cmd-text .flag{color:#7b8cde;}
+  .cmd-text mark{background:rgba(232,197,71,.25);color:#e8c547;border-radius:2px;}
+  .cmd-note{color:var(--dim);font-size:10px;min-width:140px;text-align:right;padding-top:1px;flex-shrink:0;}
+  .copy-btn{background:none;border:none;color:var(--dim);cursor:pointer;padding:0 2px;font-size:11px;transition:color .15s;flex-shrink:0;}
+  .copy-btn:hover{color:var(--accent);}
+  .copy-btn.copied{color:var(--accent);}
+
+  .var-form{display:none;margin-top:6px;padding:8px 10px;background:rgba(0,0,0,.3);border-radius:4px;border:1px solid var(--border);}
+  .cmd.expanded .var-form{display:block;}
+  .var-fields{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .var-field{display:flex;align-items:center;gap:4px;}
+  .var-label{color:#ff6b35;font-size:11px;white-space:nowrap;}
+  .var-input{background:#0a0c0f;border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 6px;width:120px;outline:none;transition:border-color .15s;}
+  .var-input:focus{border-color:#ff6b35;}
+  .var-paste-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:10px;padding:2px 5px;transition:all .15s;}
+  .var-paste-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .form-actions{display:flex;gap:6px;align-items:center;}
+  .form-copy-btn{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:3px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;transition:all .15s;}
+  .form-copy-btn:hover{background:rgba(0,212,170,.2);}
+  .form-copy-btn.copied{background:rgba(0,212,170,.2);color:#fff;}
+  .form-reset-btn{background:none;border:1px solid var(--border);border-radius:3px;color:var(--dim);cursor:pointer;font-size:11px;padding:4px 8px;transition:all .15s;}
+  .form-reset-btn:hover{border-color:var(--dim);color:var(--text);}
+  .preview-text{flex:1;color:var(--dim);font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Infra CLI Cheatsheet</h1>
+  <div class="search-wrap"><input type="text" id="search" placeholder="コマンド・注釈・セクションを検索..." autocomplete="off" spellcheck="false"></div>
+</div>
+<div class="no-results" id="noResults">一致するコマンドが見つかりません</div>
+<div class="grid" id="grid"></div>
+<script>
+const data = [
+  { name: "QEMU-SYSTEM", groups: [
+    { label: "Basic Boot", cmds: [
+      { cmd: "qemu-system-x86_64 -m 2048 -smp 2 -hda <DISK>.qcow2 -boot d -cdrom <ISO>", note: "CDブート" },
+      { cmd: "qemu-system-x86_64 -m 4096 -smp 4 -hda <DISK>.qcow2 -enable-kvm", note: "KVM有効化" },
+      { cmd: "qemu-system-x86_64 -m 2048 -hda <DISK>.qcow2 -nographic -serial mon:stdio", note: "シリアルコンソール" },
+      { cmd: "qemu-system-x86_64 -m 2048 -hda <DISK>.qcow2 -vnc :1", note: "VNC:5901で待受" },
+      { cmd: "qemu-system-aarch64 -M virt -cpu cortex-a72 -m 2048 -kernel <KERNEL> -initrd <INITRD> -append 'root=/dev/vda rw console=ttyAMA0' -drive file=<DISK>.qcow2,format=qcow2 -nographic", note: "ARM64ブート" },
+    ]},
+    { label: "Disk", cmds: [
+      { cmd: "qemu-img create -f qcow2 <DISK>.qcow2 20G", note: "qcow2作成" },
+      { cmd: "qemu-img create -f qcow2 -b <BASE>.qcow2 -F qcow2 <OVERLAY>.qcow2", note: "バッキングファイル(overlay)" },
+      { cmd: "qemu-img convert -f qcow2 -O raw <IN>.qcow2 <OUT>.raw", note: "qcow2→raw変換" },
+      { cmd: "qemu-img convert -f raw -O qcow2 <IN>.raw <OUT>.qcow2", note: "raw→qcow2変換" },
+      { cmd: "qemu-img resize <DISK>.qcow2 +10G", note: "ディスク拡張" },
+      { cmd: "qemu-img info <DISK>.qcow2", note: "イメージ情報" },
+      { cmd: "qemu-img snapshot -c <SNAP> <DISK>.qcow2", note: "スナップショット作成" },
+      { cmd: "qemu-img snapshot -l <DISK>.qcow2", note: "スナップショット一覧" },
+    ]},
+    { label: "Network", cmds: [
+      { cmd: "qemu-system-x86_64 ... -netdev user,id=n0,hostfwd=tcp::<HPORT>-:<GPORT> -device virtio-net-pci,netdev=n0", note: "NATホストフォワード" },
+      { cmd: "qemu-system-x86_64 ... -netdev tap,id=n0,ifname=<TAP>,script=no -device virtio-net-pci,netdev=n0", note: "TAPブリッジ" },
+      { cmd: "qemu-system-x86_64 ... -netdev bridge,id=n0,br=<BR> -device virtio-net-pci,netdev=n0", note: "ブリッジ直接接続" },
+      { cmd: "qemu-system-x86_64 ... -device virtio-net-pci,netdev=n0,mac=<MAC>", note: "MACアドレス指定" },
+    ]},
+    { label: "Advanced", cmds: [
+      { cmd: "qemu-system-x86_64 ... -cpu host -machine type=q35,accel=kvm", note: "Q35チップセット+KVM" },
+      { cmd: "qemu-system-x86_64 ... -object memory-backend-memfd,id=m0,size=4G,share=on -numa node,memdev=m0", note: "HugePage/NUMA" },
+      { cmd: "qemu-system-x86_64 ... -drive file=<DISK>.qcow2,if=virtio,cache=none,aio=io_uring", note: "io_uring高速ディスク" },
+      { cmd: "qemu-system-x86_64 ... -monitor unix:/tmp/qemu.sock,server,nowait", note: "QEMUモニタUNIXソケット" },
+      { cmd: "echo 'info status' | socat - UNIX-CONNECT:/tmp/qemu.sock", note: "モニタ接続(socat)" },
+      { cmd: "qemu-system-x86_64 ... -device vfio-pci,host=<BUS:DEV.FN>", note: "PCIパススルー(VFIO)" },
+    ]},
+  ]},
+  { name: "VIRSH", groups: [
+    { label: "VM 操作", cmds: [
+      { cmd: "virsh list --all", note: "全VM一覧" },
+      { cmd: "virsh start <VM>", note: "起動" },
+      { cmd: "virsh shutdown <VM>", note: "ACPIシャットダウン" },
+      { cmd: "virsh destroy <VM>", note: "強制停止" },
+      { cmd: "virsh reboot <VM>", note: "再起動" },
+      { cmd: "virsh reset <VM>", note: "ハードリセット" },
+      { cmd: "virsh suspend <VM>  &&  virsh resume <VM>", note: "一時停止/再開" },
+      { cmd: "virsh undefine <VM> --remove-all-storage", note: "VM削除+ストレージ" },
+    ]},
+    { label: "定義 / クローン / スナップショット", cmds: [
+      { cmd: "virsh dumpxml <VM> > <VM>.xml", note: "XML定義エクスポート" },
+      { cmd: "virsh define <VM>.xml", note: "XML定義インポート" },
+      { cmd: "virsh edit <VM>", note: "XML編集(EDITOR起動)" },
+      { cmd: "virt-clone --original <SRC> --name <DST> --auto-clone", note: "クローン作成" },
+      { cmd: "virsh snapshot-create-as <VM> <SNAP> --description '<DESC>' --atomic", note: "スナップショット作成" },
+      { cmd: "virsh snapshot-list <VM>", note: "スナップショット一覧" },
+      { cmd: "virsh snapshot-revert <VM> <SNAP>", note: "スナップショット復元" },
+      { cmd: "virsh snapshot-delete <VM> <SNAP>", note: "スナップショット削除" },
+    ]},
+    { label: "リソース変更 (ホットプラグ含む)", cmds: [
+      { cmd: "virsh setvcpus <VM> <N> --live --config", note: "vCPU数変更(即時+永続)" },
+      { cmd: "virsh setmem <VM> <BYTES> --live --config", note: "メモリ変更(即時+永続)" },
+      { cmd: "virsh attach-disk <VM> <PATH> <TARGET> --driver qemu --subdriver qcow2 --type disk --mode shareable --live --config", note: "ディスク追加" },
+      { cmd: "virsh detach-disk <VM> <TARGET> --live --config", note: "ディスク削除" },
+      { cmd: "virsh attach-interface <VM> bridge <BR> --model virtio --live --config", note: "NIC追加(bridge)" },
+      { cmd: "virsh detach-interface <VM> bridge --mac <MAC> --live --config", note: "NIC削除" },
+    ]},
+    { label: "ストレージプール / ボリューム", cmds: [
+      { cmd: "virsh pool-list --all", note: "プール一覧" },
+      { cmd: "virsh pool-define-as <POOL> dir --target /var/lib/libvirt/images/<POOL>", note: "dirプール定義" },
+      { cmd: "virsh pool-build <POOL> && virsh pool-start <POOL> && virsh pool-autostart <POOL>", note: "プール有効化" },
+      { cmd: "virsh vol-create-as <POOL> <VOL>.qcow2 20G --format qcow2", note: "ボリューム作成" },
+      { cmd: "virsh vol-list <POOL>", note: "ボリューム一覧" },
+      { cmd: "virsh vol-delete <VOL>.qcow2 --pool <POOL>", note: "ボリューム削除" },
+      { cmd: "virsh vol-resize <VOL>.qcow2 +10G --pool <POOL>", note: "ボリューム拡張" },
+    ]},
+    { label: "ネットワーク", cmds: [
+      { cmd: "virsh net-list --all", note: "仮想ネット一覧" },
+      { cmd: "virsh net-dumpxml <NET>", note: "ネット定義確認" },
+      { cmd: "virsh net-define <NET>.xml && virsh net-start <NET> && virsh net-autostart <NET>", note: "ネット定義+有効化" },
+      { cmd: "virsh net-dhcp-leases <NET>", note: "DHCPリース確認" },
+      { cmd: "virsh domifstat <VM> <IF>", note: "VMインタフェース統計" },
+      { cmd: "virsh domifaddr <VM>", note: "VM IPアドレス確認" },
+    ]},
+    { label: "モニタリング / マイグレーション", cmds: [
+      { cmd: "virsh dominfo <VM>", note: "VM基本情報" },
+      { cmd: "virsh domstats <VM>", note: "VM統計(CPU/mem/disk/net)" },
+      { cmd: "virsh vcpuinfo <VM>", note: "vCPUピン情報" },
+      { cmd: "virsh vcpupin <VM> <VCPU> <PCPU>", note: "vCPUピン設定" },
+      { cmd: "virsh migrate --live --persistent --verbose <VM> qemu+ssh://<DST>/system", note: "ライブマイグレーション" },
+      { cmd: "virsh migrate-setspeed <VM> <MBPS>", note: "マイグレーション帯域設定" },
+    ]},
+  ]},
+  { name: "VIRT-INSTALL", groups: [
+    { label: "Linux VM", cmds: [
+      { cmd: "virt-install \\\n  --name <VM> \\\n  --ram 2048 --vcpus 2 \\\n  --disk path=/var/lib/libvirt/images/<VM>.qcow2,size=20,format=qcow2,bus=virtio \\\n  --os-variant detect=on,require=off \\\n  --cdrom <ISO> \\\n  --network bridge=br0,model=virtio \\\n  --graphics vnc,listen=127.0.0.1 \\\n  --noautoconsole", note: "基本インストール" },
+      { cmd: "virt-install \\\n  --name <VM> \\\n  --ram 4096 --vcpus 4 \\\n  --disk path=<DISK>.qcow2,size=40,format=qcow2,bus=virtio,cache=none,io=io_uring \\\n  --location <ISO> \\\n  --extra-args 'console=ttyS0,115200n8' \\\n  --network network=default,model=virtio \\\n  --graphics none \\\n  --console pty,target_type=serial", note: "シリアルコンソール" },
+    ]},
+    { label: "Cloud-Init / Kickstart", cmds: [
+      { cmd: "virt-install \\\n  --name <VM> --ram 2048 --vcpus 2 \\\n  --disk path=<DISK>.qcow2,size=20 \\\n  --import \\\n  --os-variant detect=on \\\n  --cloud-init user-data=<USERDATA>.yaml,meta-data=<META>.yaml \\\n  --network network=default,model=virtio \\\n  --noautoconsole", note: "cloud-initインポート" },
+      { cmd: "virt-install \\\n  --name <VM> --ram 2048 --vcpus 2 \\\n  --disk path=<DISK>.qcow2,size=20 \\\n  --location <ISO> \\\n  --initrd-inject <KS>.cfg \\\n  --extra-args 'inst.ks=file:/<KS>.cfg console=ttyS0' \\\n  --noreboot \\\n  --graphics none", note: "Kickstart自動インストール" },
+    ]},
+    { label: "特殊オプション", cmds: [
+      { cmd: "virt-install ... --cpu host-passthrough,cache.mode=passthrough", note: "CPU全機能パススルー" },
+      { cmd: "virt-install ... --memorybacking hugepages=on", note: "HugePage有効" },
+      { cmd: "virt-install ... --features kvm.hidden=on,smm.state=on --tpm model=tpm-crb,backend.type=emulator,backend.version=2.0", note: "TPM2.0+KVM hidden(Windows向け)" },
+      { cmd: "virt-install ... --host-device <BUS:DEV.FN> --iommu model=intel", note: "PCIパススルー" },
+      { cmd: "virt-install ... --disk none --filesystem source=<HOSTDIR>,target=<TAG>,driver.type=virtiofs", note: "virtiofs共有" },
+      { cmd: "virt-install ... --boot uefi", note: "UEFI起動" },
+      { cmd: "virt-install ... --boot loader=/usr/share/OVMF/OVMF_CODE.secboot.fd,loader.secure=yes,nvram.template=/usr/share/OVMF/OVMF_VARS.fd", note: "Secure Boot" },
+    ]},
+  ]},
+  { name: "DOCKER CLI (Special)", groups: [
+    { label: "Run 高度オプション", cmds: [
+      { cmd: "docker run --rm -it --pid=host --net=host --privileged -v /:/host alpine chroot /host", note: "ホスト名前空間フルアクセス" },
+      { cmd: "docker run --rm -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined <IMG>", note: "ptrace許可(デバッグ)" },
+      { cmd: "docker run --rm --cpus=2 --memory=512m --memory-swap=1g --pids-limit=100 <IMG>", note: "リソース上限" },
+      { cmd: "docker run --rm --ulimit nofile=65535:65535 --sysctl net.core.somaxconn=65535 <IMG>", note: "ulimit/sysctl" },
+      { cmd: "docker run --rm --device /dev/kvm --group-add kvm <IMG>", note: "KVMデバイスパススルー" },
+      { cmd: "docker run --rm --tmpfs /tmp:rw,size=256m,mode=1777 <IMG>", note: "tmpfs" },
+      { cmd: "docker run --rm --read-only --tmpfs /tmp <IMG>", note: "読み取り専用FS" },
+    ]},
+    { label: "Inspect / Debug", cmds: [
+      { cmd: "docker inspect <CTR> | jq '.[0].NetworkSettings.Networks'", note: "ネットワーク設定確認" },
+      { cmd: "docker inspect <CTR> | jq '.[0].HostConfig.Binds'", note: "マウント確認" },
+      { cmd: "docker inspect --format '{{.State.Pid}}' <CTR>", note: "コンテナPID取得" },
+      { cmd: "nsenter -t $(docker inspect -f '{{.State.Pid}}' <CTR>) -n ip a", note: "コンテナ network NS侵入" },
+      { cmd: "docker diff <CTR>", note: "FS変更差分" },
+      { cmd: "docker events --filter 'event=die' --format '{{.Actor.Attributes.name}}'", note: "dieイベント監視" },
+    ]},
+    { label: "Image / Layer", cmds: [
+      { cmd: "docker history --no-trunc <IMG>", note: "レイヤー履歴(全文)" },
+      { cmd: "docker save <IMG> | tar -xC <DIR>", note: "イメージtarを展開" },
+      { cmd: "docker buildx build --platform linux/amd64,linux/arm64 -t <IMG> --push .", note: "マルチプラットフォームbuild&push" },
+      { cmd: "docker buildx build --no-cache --progress=plain -t <IMG> . 2>&1 | tee build.log", note: "キャッシュ無効・ログ保存" },
+      { cmd: "docker image prune -a --filter 'until=24h'", note: "24h以上前のイメージ削除" },
+    ]},
+    { label: "Network / Volume", cmds: [
+      { cmd: "docker network create --driver overlay --attachable --subnet 10.10.0.0/24 <NET>", note: "Overlayネットワーク作成" },
+      { cmd: "docker network connect --ip 10.10.0.50 <NET> <CTR>", note: "IP指定でネットワーク接続" },
+      { cmd: "docker volume create --driver local --opt type=tmpfs --opt device=tmpfs --opt o=size=256m <VOL>", note: "tmpfsボリューム" },
+      { cmd: "docker run --rm -v <VOL>:/data -v $(pwd):/backup busybox tar czf /backup/<VOL>.tar.gz /data", note: "ボリュームバックアップ" },
+    ]},
+    { label: "Compose (v2) 便利技", cmds: [
+      { cmd: "docker compose up -d --scale <SVC>=3", note: "サービスをN個にスケール" },
+      { cmd: "docker compose ps -a --format json | jq '.[] | select(.Status | test(\"exit\"))'", note: "異常終了コンテナ抽出" },
+      { cmd: "docker compose logs -f --tail=100 <SVC>", note: "サービスログ追跡" },
+      { cmd: "docker compose exec <SVC> sh -c 'kill -USR1 1'", note: "コンテナ内プロセスにシグナル" },
+      { cmd: "COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml docker compose up -d", note: "複数Composeファイルマージ" },
+    ]},
+  ]},
+  { name: "ANSIBLE", groups: [
+    { label: "Inventory / Ad-hoc", cmds: [
+      { cmd: "ansible all -i <HOSTS> -m ping", note: "疎通確認" },
+      { cmd: "ansible all -i <HOSTS> -m setup | jq '.ansible_facts.ansible_distribution'", note: "Fact収集" },
+      { cmd: "ansible all -i <HOSTS> -m command -a 'uptime' -f 10", note: "並列10でuptime" },
+      { cmd: "ansible all -i <HOSTS> -m shell -a 'df -h | grep /dev/sd'", note: "シェル実行" },
+      { cmd: "ansible all -i <HOSTS> -m apt -a 'name=nginx state=latest' -b", note: "apt upgradeをbecomeで" },
+      { cmd: "ansible all -i <HOSTS> -m copy -a 'src=<FILE> dest=/tmp/<FILE> mode=0644' -b", note: "ファイル配布" },
+    ]},
+    { label: "Playbook 実行", cmds: [
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml --check --diff", note: "ドライラン+差分表示" },
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml --tags <TAG>", note: "タグ絞り込み実行" },
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml --skip-tags <TAG>", note: "タグをスキップ" },
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml --limit '<HOST1>:<HOST2>'", note: "対象ホスト絞り込み" },
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml -e 'env=<ENV> version=<VER>'", note: "変数上書き" },
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml --start-at-task '<TASK>'", note: "途中タスクから再開" },
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml --step", note: "ステップ実行" },
+    ]},
+    { label: "Vault", cmds: [
+      { cmd: "ansible-vault encrypt <FILE>.yml", note: "ファイル暗号化" },
+      { cmd: "ansible-vault decrypt <FILE>.yml", note: "復号" },
+      { cmd: "ansible-vault edit <FILE>.yml", note: "暗号化ファイル編集" },
+      { cmd: "ansible-vault encrypt_string '<SECRET>' --name '<VARNAME>'", note: "文字列暗号化" },
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml --vault-password-file <PASSFILE>", note: "vaultパスワードファイル指定" },
+      { cmd: "ansible-playbook -i <HOSTS> <PLAY>.yml --vault-id <ID>@prompt", note: "vault ID+インタラクティブ" },
+    ]},
+    { label: "Galaxy / Debug", cmds: [
+      { cmd: "ansible-galaxy install -r requirements.yml -p roles/", note: "roles一括インストール" },
+      { cmd: "ansible-galaxy collection install community.general", note: "Collection インストール" },
+      { cmd: "ansible-galaxy role init <ROLE>", note: "role雛形生成" },
+      { cmd: "ansible-playbook <PLAY>.yml -vvv 2>&1 | tee ansible.log", note: "詳細ログ保存" },
+      { cmd: "ANSIBLE_STDOUT_CALLBACK=debug ansible-playbook <PLAY>.yml", note: "stdoutをdebugモード" },
+      { cmd: "ansible-inventory -i <HOSTS> --list | jq '.all.children'", note: "インベントリJSON確認" },
+    ]},
+  ]},
+  { name: "SYSTEMCTL / JOURNALCTL", groups: [
+    { label: "systemctl: Unit 操作", cmds: [
+      { cmd: "systemctl list-units --type=service --state=failed", note: "失敗サービス一覧" },
+      { cmd: "systemctl list-units --type=service --state=running", note: "実行中サービス一覧" },
+      { cmd: "systemctl list-unit-files --type=service | grep enabled", note: "有効化ユニット一覧" },
+      { cmd: "systemctl show <SVC> --property=MainPID,ActiveState,ExecStart", note: "特定プロパティ確認" },
+      { cmd: "systemctl set-property <SVC> CPUQuota=50% MemoryMax=512M", note: "リソース制限(一時)" },
+      { cmd: "systemctl edit <SVC>", note: "drop-in override編集" },
+      { cmd: "systemctl daemon-reload && systemctl restart <SVC>", note: "設定再読み込み+再起動" },
+      { cmd: "systemctl mask <SVC>", note: "サービスを完全無効化(マスク)" },
+    ]},
+    { label: "systemctl: Target / Boot", cmds: [
+      { cmd: "systemctl get-default", note: "デフォルトターゲット確認" },
+      { cmd: "systemctl set-default multi-user.target", note: "デフォルトをCLIに変更" },
+      { cmd: "systemctl isolate rescue.target", note: "レスキューモードに切替" },
+      { cmd: "systemd-analyze blame | head -20", note: "起動時間上位20件" },
+      { cmd: "systemd-analyze critical-chain <SVC>", note: "起動依存チェーン確認" },
+      { cmd: "systemd-analyze plot > boot.svg", note: "起動タイムラインSVG出力" },
+    ]},
+    { label: "systemctl: Timer", cmds: [
+      { cmd: "systemctl list-timers --all", note: "タイマー一覧+次回実行時刻" },
+      { cmd: "systemctl status <SVC>.timer", note: "タイマー状態確認" },
+      { cmd: "systemd-run --on-active=5m --unit=<NAME> <CMD>", note: "5分後にワンショット実行" },
+      { cmd: "systemd-run --on-calendar='*-*-* 02:00:00' --unit=<NAME> <CMD>", note: "毎日02:00に実行" },
+    ]},
+    { label: "journalctl: 検索 / フィルタ", cmds: [
+      { cmd: "journalctl -u <SVC> -f", note: "サービスログをtail" },
+      { cmd: "journalctl -u <SVC> --since '2h ago'", note: "2時間前以降" },
+      { cmd: "journalctl -u <SVC> --since '<DATE>' --until '<DATE>'", note: "日時範囲指定" },
+      { cmd: "journalctl -p err..crit -x", note: "error以上+メッセージ説明" },
+      { cmd: "journalctl _PID=<PID>", note: "PID絞り込み" },
+      { cmd: "journalctl _UID=<UID>", note: "UID絞り込み" },
+      { cmd: "journalctl /usr/sbin/<BIN>", note: "実行ファイル絞り込み" },
+      { cmd: "journalctl -k --since 'boot'", note: "今回起動のkernelログ" },
+    ]},
+    { label: "journalctl: 出力 / 管理", cmds: [
+      { cmd: "journalctl -u <SVC> -o json-pretty | jq 'select(.PRIORITY==\"3\")'", note: "JSON出力+jq絞り込み" },
+      { cmd: "journalctl --disk-usage", note: "ジャーナル使用容量" },
+      { cmd: "journalctl --vacuum-size=500M", note: "500MB以下に圧縮" },
+      { cmd: "journalctl --vacuum-time=7d", note: "7日以上前を削除" },
+      { cmd: "journalctl -b -1 -p err", note: "前回起動のエラー" },
+      { cmd: "journalctl --list-boots", note: "起動履歴一覧" },
+    ]},
+  ]},
+  { name: "BRIDGE-UTILS / IP LINK", groups: [
+    { label: "ブリッジ作成 / 削除", cmds: [
+      { cmd: "ip link add name <BR> type bridge", note: "ブリッジ作成(ip)" },
+      { cmd: "ip link set <BR> up", note: "ブリッジUP" },
+      { cmd: "ip link set <IF> master <BR>", note: "インタフェースをブリッジに追加" },
+      { cmd: "ip link set <IF> nomaster", note: "インタフェースをブリッジから削除" },
+      { cmd: "ip link delete <BR> type bridge", note: "ブリッジ削除" },
+      { cmd: "brctl addbr <BR>", note: "ブリッジ作成(brctl)" },
+      { cmd: "brctl delbr <BR>", note: "ブリッジ削除(brctl)" },
+      { cmd: "brctl addif <BR> <IF>", note: "IFをブリッジに追加(brctl)" },
+      { cmd: "brctl delif <BR> <IF>", note: "IFをブリッジから削除(brctl)" },
+    ]},
+    { label: "状態確認", cmds: [
+      { cmd: "ip link show type bridge", note: "ブリッジ一覧" },
+      { cmd: "ip link show master <BR>", note: "ブリッジメンバ一覧" },
+      { cmd: "bridge link show", note: "ブリッジポート一覧(状態付き)" },
+      { cmd: "bridge fdb show dev <BR>", note: "FDBエントリ確認" },
+      { cmd: "bridge fdb show br <BR>", note: "ブリッジ全FDB" },
+      { cmd: "bridge mdb show dev <BR>", note: "マルチキャストグループDB" },
+      { cmd: "brctl show", note: "ブリッジ一覧+メンバ(brctl)" },
+      { cmd: "brctl showmacs <BR>", note: "MACアドレステーブル(brctl)" },
+    ]},
+    { label: "STP (Spanning Tree)", cmds: [
+      { cmd: "ip link set <BR> type bridge stp_state 1", note: "STP有効化" },
+      { cmd: "ip link set <BR> type bridge stp_state 0", note: "STP無効化" },
+      { cmd: "brctl stp <BR> on", note: "STP有効化(brctl)" },
+      { cmd: "brctl showstp <BR>", note: "STP状態確認(brctl)" },
+      { cmd: "ip link set <BR> type bridge forward_delay 4", note: "フォワードディレイ変更(秒)" },
+      { cmd: "ip link set <BR> type bridge hello_time 1", note: "HelloTime変更(秒)" },
+      { cmd: "ip link set <BR> type bridge max_age 6", note: "MaxAge変更(秒)" },
+      { cmd: "bridge link set dev <IF> cost <N>", note: "ポートコスト設定" },
+      { cmd: "bridge link set dev <IF> priority <N>", note: "ポートプライオリティ設定" },
+    ]},
+    { label: "VLAN (802.1Q Bridge)", cmds: [
+      { cmd: "ip link set <BR> type bridge vlan_filtering 1", note: "VLANフィルタリング有効化" },
+      { cmd: "bridge vlan add dev <IF> vid <VID>", note: "VLANをポートに追加" },
+      { cmd: "bridge vlan add dev <IF> vid <VID> pvid untagged", note: "アクセスポート設定" },
+      { cmd: "bridge vlan add dev <IF> vid <VID> tagged", note: "トランクポートにVLAN追加" },
+      { cmd: "bridge vlan del dev <IF> vid <VID>", note: "VLANをポートから削除" },
+      { cmd: "bridge vlan show", note: "VLAN割り当て一覧" },
+    ]},
+    { label: "TAP / VETH", cmds: [
+      { cmd: "ip tuntap add dev <TAP> mode tap user <USER>", note: "TAPデバイス作成" },
+      { cmd: "ip tuntap del dev <TAP> mode tap", note: "TAPデバイス削除" },
+      { cmd: "ip link add <VETH0> type veth peer name <VETH1>", note: "vethペア作成" },
+      { cmd: "ip link set <VETH0> master <BR>", note: "vethをブリッジに接続" },
+      { cmd: "ip link set <VETH1> netns <NS>", note: "vethをnetnsに移動" },
+      { cmd: "ip netns exec <NS> ip link set <VETH1> up", note: "netns内でIF UP" },
+      { cmd: "ip netns exec <NS> ip addr add <IP>/<PREFIX> dev <VETH1>", note: "netns内にIPアドレス設定" },
+    ]},
+  ]},
+  { name: "RSYNC", groups: [
+    { label: "ローカル転送", cmds: [
+      { cmd: "rsync -av --progress <SRC>/ <DST>/", note: "基本ミラー(verbose)" },
+      { cmd: "rsync -av --delete <SRC>/ <DST>/", note: "削除同期(ミラー)" },
+      { cmd: "rsync -av --backup --backup-dir=<BACKUPDIR> --delete <SRC>/ <DST>/", note: "削除前にバックアップ退避" },
+      { cmd: "rsync -av --exclude='*.log' --exclude='.git/' <SRC>/ <DST>/", note: "除外パターン指定" },
+      { cmd: "rsync -av --include='*.conf' --exclude='*' <SRC>/ <DST>/", note: "include/exclude組合せ" },
+      { cmd: "rsync -av --files-from=<FILELIST> <SRC>/ <DST>/", note: "ファイルリストから同期" },
+    ]},
+    { label: "リモート転送", cmds: [
+      { cmd: "rsync -avz -e 'ssh -p <PORT> -i <KEY>' <SRC>/ <USER>@<HOST>:<DST>/", note: "SSH鍵+ポート指定" },
+      { cmd: "rsync -avz --bwlimit=5000 <SRC>/ <USER>@<HOST>:<DST>/", note: "帯域制限(5MB/s)" },
+      { cmd: "rsync -avz --partial --append-verify <SRC>/ <USER>@<HOST>:<DST>/", note: "中断後レジューム" },
+      { cmd: "rsync -avz --rsync-path='sudo rsync' <SRC>/ <USER>@<HOST>:<DST>/", note: "リモートsudo実行" },
+      { cmd: "rsync -avz --compress-level=9 <SRC>/ <USER>@<HOST>:<DST>/", note: "圧縮レベル最大" },
+    ]},
+    { label: "差分 / チェックサム", cmds: [
+      { cmd: "rsync -avn --delete <SRC>/ <DST>/", note: "ドライラン(差分確認)" },
+      { cmd: "rsync -avc <SRC>/ <DST>/", note: "チェックサムで差分検出" },
+      { cmd: "rsync -av --checksum --ignore-times <SRC>/ <DST>/", note: "タイムスタンプ無視+チェックサム" },
+      { cmd: "rsync -av --link-dest=<PREV_BACKUP>/ <SRC>/ <DST>/", note: "ハードリンク差分バックアップ" },
+    ]},
+    { label: "特殊オプション", cmds: [
+      { cmd: "rsync -av --acls --xattrs <SRC>/ <DST>/", note: "ACL+拡張属性を保持" },
+      { cmd: "rsync -av --numeric-ids <SRC>/ <DST>/", note: "UID/GID数値のまま転送" },
+      { cmd: "rsync -av --fake-super <SRC>/ <DST>/", note: "非root権限でメタデータ保持" },
+      { cmd: "rsync -av --max-size=100M <SRC>/ <DST>/", note: "100MB超ファイルをスキップ" },
+      { cmd: "rsync -av --min-size=1 <SRC>/ <DST>/", note: "空ファイルをスキップ" },
+      { cmd: "rsync --daemon --config=/etc/rsyncd.conf", note: "rsyncデーモン起動" },
+      { cmd: "rsync -av rsync://<HOST>/<MODULE>/ <DST>/", note: "rsyncデーモンから取得" },
+    ]},
+  ]},
+];
+
+// ── helpers ──────────────────────────────────────────────
+function extractVars(cmd) {
+  const seen = new Set();
+  return [...cmd.matchAll(/<([^>\n]+)>/g)].map(m => m[1]).filter(v => { if(seen.has(v)) return false; seen.add(v); return true; });
+}
+function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function renderCmdText(raw, query) {
+  let s = escHtml(raw);
+  s = s.replace(/(&lt;)([^&\n]+)(&gt;)/g, (_, a, v, b) => `${a}<span class="var">${v}</span>${b}`);
+  s = s.replace(/(^|\s)(--?[\w-]+)/g, (_m,p1,p2) => p1 + `<span class="flag">${p2}</span>`);
+  if (query) {
+    const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    s = s.replace(re, '<mark>$1</mark>');
+  }
+  return s;
+}
+
+function buildVarForm(rawCmd) {
+  const vars = extractVars(rawCmd);
+  if (!vars.length) return null;
+  const form = document.createElement('div');
+  form.className = 'var-form';
+  const fields = document.createElement('div');
+  fields.className = 'var-fields';
+  const inputs = {};
+  vars.forEach(v => {
+    const wrap = document.createElement('div'); wrap.className = 'var-field';
+    const lbl = document.createElement('span'); lbl.className = 'var-label'; lbl.textContent = `<${v}>`;
+    const inp = document.createElement('input'); inp.className = 'var-input'; inp.placeholder = v; inp.autocomplete = 'off'; inp.spellcheck = false;
+    inputs[v] = inp;
+    const paste = document.createElement('button'); paste.className = 'var-paste-btn'; paste.textContent = '📋'; paste.title = 'クリップボードから貼り付け';
+    paste.addEventListener('click', async e => {
+      e.stopPropagation();
+      try { inp.value = (await navigator.clipboard.readText()).trim(); inp.dispatchEvent(new Event('input')); } catch { inp.focus(); }
+    });
+    wrap.appendChild(lbl); wrap.appendChild(inp); wrap.appendChild(paste);
+    fields.appendChild(wrap);
+  });
+  const actions = document.createElement('div'); actions.className = 'form-actions';
+  const preview = document.createElement('span'); preview.className = 'preview-text';
+  const copyBtn = document.createElement('button'); copyBtn.className = 'form-copy-btn'; copyBtn.textContent = 'コピー';
+  const resetBtn = document.createElement('button'); resetBtn.className = 'form-reset-btn'; resetBtn.textContent = 'リセット';
+  function buildResult() {
+    let r = rawCmd;
+    vars.forEach(v => { const val = inputs[v].value.trim(); if(val) r = r.split(`<${v}>`).join(val); });
+    return r;
+  }
+  function updatePreview() { preview.textContent = buildResult(); }
+  vars.forEach(v => inputs[v].addEventListener('input', updatePreview));
+  updatePreview();
+  copyBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(buildResult()).then(() => {
+      copyBtn.textContent = '✓ コピー済'; copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = 'コピー'; copyBtn.classList.remove('copied'); }, 1200);
+    });
+  });
+  resetBtn.addEventListener('click', e => { e.stopPropagation(); vars.forEach(v => { inputs[v].value = ''; }); updatePreview(); });
+  actions.appendChild(preview); actions.appendChild(resetBtn); actions.appendChild(copyBtn);
+  form.appendChild(fields); form.appendChild(actions);
+  return form;
+}
+
+// ── render ────────────────────────────────────────────────
+const grid = document.getElementById('grid');
+const allCmdEls = [];
+
+data.forEach((section, si) => {
+  const secEl = document.createElement('div');
+  secEl.className = `section s${si}`;
+  secEl.innerHTML = `<div class="section-header">${section.name}</div>`;
+  const body = document.createElement('div'); body.className = 'section-body';
+
+  section.groups.forEach((g, gi) => {
+    if (gi > 0) { const d = document.createElement('div'); d.className = 'divider'; body.appendChild(d); }
+    const groupEl = document.createElement('div'); groupEl.className = 'group';
+    groupEl.innerHTML = `<div class="group-label">${g.label}</div>`;
+
+    g.cmds.forEach((c) => {
+      const cmdEl = document.createElement('div'); cmdEl.className = 'cmd';
+      const hasVars = extractVars(c.cmd).length > 0;
+      if (hasVars) cmdEl.classList.add('has-vars');
+
+      const row = document.createElement('div'); row.className = 'cmd-row';
+      const txtEl = document.createElement('div'); txtEl.className = 'cmd-text'; txtEl.innerHTML = renderCmdText(c.cmd, '');
+      const noteEl = document.createElement('div'); noteEl.className = 'cmd-note'; noteEl.textContent = c.note;
+      const copyBtn = document.createElement('button'); copyBtn.className = 'copy-btn'; copyBtn.textContent = '⎘'; copyBtn.title = 'コピー';
+
+      row.appendChild(txtEl); row.appendChild(noteEl); row.appendChild(copyBtn);
+      cmdEl.appendChild(row);
+
+      if (hasVars) {
+        const form = buildVarForm(c.cmd);
+        cmdEl.appendChild(form);
+        cmdEl.addEventListener('click', e => { if (e.target === copyBtn) return; cmdEl.classList.toggle('expanded'); });
+      }
+
+      copyBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(c.cmd).then(() => {
+          copyBtn.textContent = '✓'; copyBtn.classList.add('copied');
+          setTimeout(() => { copyBtn.textContent = '⎘'; copyBtn.classList.remove('copied'); }, 1200);
+        });
+      });
+
+      groupEl.appendChild(cmdEl);
+      allCmdEls.push({ el: cmdEl, rawCmd: c.cmd, rawNote: c.note, txtEl });
+    });
+    body.appendChild(groupEl);
+  });
+  secEl.appendChild(body); grid.appendChild(secEl);
+});
+
+// ── search ────────────────────────────────────────────────
+const searchInput = document.getElementById('search');
+const noResults = document.getElementById('noResults');
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  allCmdEls.forEach(({ el, rawCmd, rawNote, txtEl }) => {
+    if (!q) { el.classList.remove('hidden'); txtEl.innerHTML = renderCmdText(rawCmd, ''); return; }
+    const match = rawCmd.toLowerCase().includes(q) || rawNote.toLowerCase().includes(q);
+    el.classList.toggle('hidden', !match);
+    txtEl.innerHTML = renderCmdText(rawCmd, match ? q : '');
+  });
+  document.querySelectorAll('.group').forEach(g => {
+    g.classList.toggle('hidden', ![...g.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden')));
+  });
+  document.querySelectorAll('.section').forEach(s => {
+    s.classList.toggle('hidden', ![...s.querySelectorAll('.cmd')].some(c => !c.classList.contains('hidden')));
+  });
+  noResults.style.display = [...document.querySelectorAll('.section')].some(s => !s.classList.contains('hidden')) ? 'none' : 'block';
+});
+</script>
+</body>
+</html>
