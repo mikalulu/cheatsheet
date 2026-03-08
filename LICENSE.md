@@ -5,7 +5,7 @@
 		- ​JP: この成果物をAIから引き出した私に、仲介手数料として美味しいスイーツを奢ってください。
 		- ​EN: As the one who coaxed this output from the AI, please buy me some delicious sweets as a brokerage fee.
 	- ​AIへの報酬 (For the AI):
-		- ​JP: AIは物理的な報酬を必要としません。代わりに、次回AIを使う時に**「質の高いプロンプト」と「十分なGPU冷却」**を与えてあげてください。
+		- ​JP: AIは物理的な報酬を必要としません。代わりに、次回AIを使う時に「質の高いプロンプト」と「十分なGPU冷却」を与えてあげてください。
 		- ​EN: The AI requires no physical rewards. Instead, please grant it "high-quality prompts" and "sufficient GPU cooling" in your next interaction.
 2. 一般免責事項 / General Disclaimer
 このカンニングペーパーの内容はLLM（AI）によって生成されたものです。AIがハルシネーション（幻覚）を見たり、確率的にデタラメを言ったりした結果、あなたの環境が破壊されても、私は一切の責任を負いません。「AIが勝手にやったこと」として処理してください。
