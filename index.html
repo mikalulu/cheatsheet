@@ -1,489 +1,543 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MITSUKETE++COPIPE</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MITSUKETE++COPIPE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap');
 
-  :root {
-    --bg: #060810;
-    --panel: #0c0f18;
-    --border: #1a2035;
-    --text: #c8d0dc;
-    --dim: #4a5568;
-  }
+    :root {
+      --bg: #060810;
+      --panel: #0c0f18;
+      --border: #1a2035;
+      --text: #c8d0dc;
+      --dim: #4a5568;
+    }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    min-height: 100vh;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
-  /* ── canvas bg ── */
-  #bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    /* ── canvas bg ── */
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
 
-  /* ── noise overlay ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 1;
-    opacity: .5;
-  }
+    /* ── noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1;
+      opacity: .5;
+    }
 
-  /* ── main layout ── */
-  main {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    max-width: 960px;
-    padding: 80px 24px 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 64px;
-  }
+    /* ── main layout ── */
+    main {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 960px;
+      padding: 80px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 64px;
+    }
 
-  /* ── hero ── */
-  .hero { text-align: center; }
+    /* ── hero ── */
+    .hero {
+      text-align: center;
+    }
 
-  .hero-eyebrow {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 4px;
-    color: var(--dim);
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
+    .hero-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
 
-  .hero-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: clamp(52px, 10vw, 96px);
-    font-weight: 700;
-    line-height: .95;
-    letter-spacing: -1px;
-    background: linear-gradient(135deg, #ffffff 0%, #a0aec0 40%, #4a6fa5 70%, #00d4aa 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 24px;
-  }
+    .hero-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: clamp(52px, 10vw, 96px);
+      font-weight: 700;
+      line-height: .95;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #ffffff 0%, #a0aec0 40%, #4a6fa5 70%, #00d4aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 24px;
+    }
 
-  .hero-sub {
-    font-size: 13px;
-    color: var(--dim);
-    letter-spacing: 1px;
-    line-height: 1.8;
-  }
+    .hero-sub {
+      font-size: 13px;
+      color: var(--dim);
+      letter-spacing: 1px;
+      line-height: 1.8;
+    }
 
-  .hero-sub span { color: #00d4aa; }
+    .hero-sub span {
+      color: #00d4aa;
+    }
 
-  /* ── divider ── */
-  .divider-line {
-    width: 100%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
-    position: relative;
-  }
-  .divider-line::before {
-    content: '◈';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%,-50%);
-    color: var(--dim);
-    font-size: 10px;
-    background: var(--bg);
-    padding: 0 12px;
-  }
+    /* ── divider ── */
+    .divider-line {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
+      position: relative;
+    }
 
-  /* ── cards grid ── */
-  .cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    width: 100%;
-  }
+    .divider-line::before {
+      content: '◈';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--dim);
+      font-size: 10px;
+      background: var(--bg);
+      padding: 0 12px;
+    }
 
-  .card {
-    position: relative;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 32px 28px 28px;
-    text-decoration: none;
-    color: inherit;
-    overflow: hidden;
-    transition: transform .25s, border-color .25s, box-shadow .25s;
-    cursor: pointer;
-    display: block;
-  }
+    /* ── cards grid ── */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+    }
 
-  .card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transition: opacity .3s;
-    border-radius: 8px;
-  }
+    .card {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px 28px 28px;
+      text-decoration: none;
+      color: inherit;
+      overflow: hidden;
+      transition: transform .25s, border-color .25s, box-shadow .25s;
+      cursor: pointer;
+      display: block;
+    }
 
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 60px rgba(0,0,0,.5);
-  }
-  .card:hover::before { opacity: 1; }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .3s;
+      border-radius: 8px;
+    }
 
-  /* per-card accent */
-  .card-network  { --c: #00d4aa; }
-  .card-infra    { --c: #ff6b35; }
-  .card-macos    { --c: #7b8cde; }
-  .card-windows  { --c: #00b4ff; }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+    }
 
-  .card::before  { background: radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--c) 8%, transparent), transparent 70%); }
-  .card:hover    { border-color: color-mix(in srgb, var(--c) 40%, transparent); }
-  .card:hover    { box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 0 1px color-mix(in srgb, var(--c) 20%, transparent), inset 0 1px 0 color-mix(in srgb, var(--c) 15%, transparent); }
+    .card:hover::before {
+      opacity: 1;
+    }
 
-  /* glow orb */
-  .card-orb {
-    position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 140px;
-    height: 140px;
-    background: radial-gradient(circle, color-mix(in srgb, var(--c) 15%, transparent), transparent 70%);
-    border-radius: 50%;
-    transition: opacity .3s, transform .3s;
-    opacity: .6;
-  }
-  .card:hover .card-orb { opacity: 1; transform: scale(1.2); }
+    /* per-card accent */
+    .card-network {
+      --c: #00d4aa;
+    }
 
-  .card-icon {
-    font-size: 28px;
-    margin-bottom: 16px;
-    display: block;
-    filter: drop-shadow(0 0 12px var(--c));
-  }
+    .card-infra {
+      --c: #ff6b35;
+    }
 
-  .card-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #fff;
-    margin-bottom: 8px;
-  }
+    .card-macos {
+      --c: #7b8cde;
+    }
 
-  .card-desc {
-    font-size: 11px;
-    color: var(--dim);
-    line-height: 1.7;
-    margin-bottom: 20px;
-  }
+    .card-windows {
+      --c: #00b4ff;
+    }
 
-  .card-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+    .card::before {
+      background: radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--c) 8%, transparent), transparent 70%);
+    }
 
-  .tag {
-    font-size: 10px;
-    letter-spacing: 1px;
-    padding: 3px 8px;
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--c) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--c) 25%, transparent);
-    color: color-mix(in srgb, var(--c) 80%, #fff);
-    transition: background .2s;
-  }
-  .card:hover .tag {
-    background: color-mix(in srgb, var(--c) 18%, transparent);
-  }
+    .card:hover {
+      border-color: color-mix(in srgb, var(--c) 40%, transparent);
+    }
 
-  .card-arrow {
-    position: absolute;
-    bottom: 24px;
-    right: 24px;
-    font-size: 18px;
-    color: color-mix(in srgb, var(--c) 50%, transparent);
-    transition: color .2s, transform .2s;
-  }
-  .card:hover .card-arrow {
-    color: var(--c);
-    transform: translate(3px, -3px);
-  }
+    .card:hover {
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .5), 0 0 0 1px color-mix(in srgb, var(--c) 20%, transparent), inset 0 1px 0 color-mix(in srgb, var(--c) 15%, transparent);
+    }
 
-  /* ── stats bar ── */
-  .stats {
-    display: flex;
-    gap: 40px;
-    justify-content: center;
-    width: 100%;
-    padding: 28px 0;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
+    /* glow orb */
+    .card-orb {
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, color-mix(in srgb, var(--c) 15%, transparent), transparent 70%);
+      border-radius: 50%;
+      transition: opacity .3s, transform .3s;
+      opacity: .6;
+    }
 
-  .stat {
-    text-align: center;
-  }
+    .card:hover .card-orb {
+      opacity: 1;
+      transform: scale(1.2);
+    }
 
-  .stat-num {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 36px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #fff, #00d4aa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
+    .card-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+      display: block;
+      filter: drop-shadow(0 0 12px var(--c));
+    }
 
-  .stat-label {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--dim);
-    text-transform: uppercase;
-  }
+    .card-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 8px;
+    }
 
-  /* ── footer ── */
-  footer {
-    position: relative;
-    z-index: 2;
-    padding: 24px;
-    font-size: 10px;
-    color: var(--dim);
-    letter-spacing: 2px;
-    text-align: center;
-  }
+    .card-desc {
+      font-size: 11px;
+      color: var(--dim);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
 
-  @media (max-width: 640px) {
-    .cards { grid-template-columns: 1fr; }
-    .stats { flex-wrap: wrap; gap: 24px; }
-  }
-</style>
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--c) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--c) 25%, transparent);
+      color: color-mix(in srgb, var(--c) 80%, #fff);
+      transition: background .2s;
+    }
+
+    .card:hover .tag {
+      background: color-mix(in srgb, var(--c) 18%, transparent);
+    }
+
+    .card-arrow {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      font-size: 18px;
+      color: color-mix(in srgb, var(--c) 50%, transparent);
+      transition: color .2s, transform .2s;
+    }
+
+    .card:hover .card-arrow {
+      color: var(--c);
+      transform: translate(3px, -3px);
+    }
+
+    /* ── stats bar ── */
+    .stats {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      width: 100%;
+      padding: 28px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff, #00d4aa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    /* ── footer ── */
+    footer {
+      position: relative;
+      z-index: 2;
+      padding: 24px;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        flex-wrap: wrap;
+        gap: 24px;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<canvas id="bg"></canvas>
+  <canvas id="bg"></canvas>
 
-<main>
-  <div class="hero">
-    <p class="hero-eyebrow">Personal Reference</p>
-    <h1 class="hero-title">CLI<br>MITSUKETE++COPIPE</h1>
-    <p class="hero-sub">
-      ペーストでVAR補完してコピペで使える&nbsp;インクリメンタルサーチ対応<br>
-      <span>楽々</span> コマンドリファレンス集
-    </p>
-  </div>
-
-  <div class="divider-line"></div>
-
-  <div class="cards">
-    <a class="card card-network" href="network.html">
-      <div class="card-orb"></div>
-      <span class="card-icon">🌐</span>
-      <div class="card-title">Network</div>
-      <p class="card-desc">OpenSSL · GPG · AWK · nftables<br>LDAP · dig · curl · tcpdump · jq · ss/ip</p>
-      <div class="card-tags">
-        <span class="tag">OPENSSL</span>
-        <span class="tag">GPG</span>
-        <span class="tag">NFT</span>
-        <span class="tag">TCPDUMP</span>
-        <span class="tag">DIG</span>
-        <span class="tag">JQ</span>
-      </div>
-      <span class="card-arrow">↗</span>
-    </a>
-
-    <a class="card card-infra" href="virtualization.html">
-      <div class="card-orb"></div>
-      <span class="card-icon">🖥</span>
-      <div class="card-title">Infra / Virt</div>
-      <p class="card-desc">QEMU · virsh · virt-install · Docker<br>Ansible · systemctl · bridge · rsync · LVM</p>
-      <div class="card-tags">
-        <span class="tag">QEMU</span>
-        <span class="tag">VIRSH</span>
-        <span class="tag">DOCKER</span>
-        <span class="tag">ANSIBLE</span>
-        <span class="tag">BRIDGE</span>
-        <span class="tag">RSYNC</span>
-      </div>
-      <span class="card-arrow">↗</span>
-    </a>
-
-    <a class="card card-macos" href="macos.html">
-      <div class="card-orb"></div>
-      <span class="card-icon">🍎</span>
-      <div class="card-title">macOS</div>
-      <p class="card-desc">osascript · xattr/ACL · defaults · launchctl<br>diskutil · security · spotlight · sysctl</p>
-      <div class="card-tags">
-        <span class="tag">OSASCRIPT</span>
-        <span class="tag">XATTR</span>
-        <span class="tag">DEFAULTS</span>
-        <span class="tag">LAUNCHCTL</span>
-        <span class="tag">SECURITY</span>
-      </div>
-      <span class="card-arrow">↗</span>
-    </a>
-
-    <a class="card card-windows" href="windows.html">
-      <div class="card-orb"></div>
-      <span class="card-icon">🪟</span>
-      <div class="card-title">Windows</div>
-      <p class="card-desc">PowerShell · AD · WMI/CIM · Registry<br>Hyper-V · winget · WSL · CMD</p>
-      <div class="card-tags">
-        <span class="tag">POWERSHELL</span>
-        <span class="tag">AD</span>
-        <span class="tag">WMI/CIM</span>
-        <span class="tag">HYPER-V</span>
-        <span class="tag">WSL</span>
-      </div>
-      <span class="card-arrow">↗</span>
-    </a>
-  </div>
-
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-num" id="sn-sheets">4</div>
-      <div class="stat-label">Cheatsheets</div>
+  <main>
+    <div class="hero">
+      <p class="hero-eyebrow">Personal Reference</p>
+      <h1 class="hero-title">CLI<br>MITSUKETE++COPIPE</h1>
+      <p class="hero-sub">
+        ペーストでVAR補完してコピペで使える&nbsp;インクリメンタルサーチ対応<br>
+        <span>楽々</span> コマンドリファレンス集
+      </p>
     </div>
-    <div class="stat">
-      <div class="stat-num" id="sn-sections">36</div>
-      <div class="stat-label">Sections</div>
+
+    <div class="divider-line"></div>
+
+    <div class="cards">
+      <a class="card card-network" href="network.html">
+        <div class="card-orb"></div>
+        <span class="card-icon">🌐</span>
+        <div class="card-title">Network</div>
+        <p class="card-desc">OpenSSL · GPG · AWK · nftables<br>LDAP · dig · curl · tcpdump · jq · ss/ip</p>
+        <div class="card-tags">
+          <span class="tag">OPENSSL</span>
+          <span class="tag">GPG</span>
+          <span class="tag">NFT</span>
+          <span class="tag">TCPDUMP</span>
+          <span class="tag">DIG</span>
+          <span class="tag">JQ</span>
+        </div>
+        <span class="card-arrow">↗</span>
+      </a>
+
+      <a class="card card-infra" href="virtualization.html">
+        <div class="card-orb"></div>
+        <span class="card-icon">🖥</span>
+        <div class="card-title">Infra / Virt</div>
+        <p class="card-desc">QEMU · virsh · virt-install · Docker<br>Ansible · systemctl · bridge · rsync · LVM</p>
+        <div class="card-tags">
+          <span class="tag">QEMU</span>
+          <span class="tag">VIRSH</span>
+          <span class="tag">DOCKER</span>
+          <span class="tag">ANSIBLE</span>
+          <span class="tag">BRIDGE</span>
+          <span class="tag">RSYNC</span>
+        </div>
+        <span class="card-arrow">↗</span>
+      </a>
+
+      <a class="card card-macos" href="macos.html">
+        <div class="card-orb"></div>
+        <span class="card-icon">🍎</span>
+        <div class="card-title">macOS</div>
+        <p class="card-desc">osascript · xattr/ACL · defaults · launchctl<br>diskutil · security · spotlight · sysctl
+        </p>
+        <div class="card-tags">
+          <span class="tag">OSASCRIPT</span>
+          <span class="tag">XATTR</span>
+          <span class="tag">DEFAULTS</span>
+          <span class="tag">LAUNCHCTL</span>
+          <span class="tag">SECURITY</span>
+        </div>
+        <span class="card-arrow">↗</span>
+      </a>
+
+      <a class="card card-windows" href="windows.html">
+        <div class="card-orb"></div>
+        <span class="card-icon">🪟</span>
+        <div class="card-title">Windows</div>
+        <p class="card-desc">PowerShell · AD · WMI/CIM · Registry<br>Hyper-V · winget · WSL · CMD</p>
+        <div class="card-tags">
+          <span class="tag">POWERSHELL</span>
+          <span class="tag">AD</span>
+          <span class="tag">WMI/CIM</span>
+          <span class="tag">HYPER-V</span>
+          <span class="tag">WSL</span>
+        </div>
+        <span class="card-arrow">↗</span>
+      </a>
     </div>
-    <div class="stat">
-      <div class="stat-num" id="sn-cmds">500<span style="font-size:20px">+</span></div>
-      <div class="stat-label">Commands</div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num" id="sn-sheets">4</div>
+        <div class="stat-label">Cheatsheets</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="sn-sections">36</div>
+        <div class="stat-label">Sections</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="sn-cmds">500<span style="font-size:20px">+</span></div>
+        <div class="stat-label">Commands</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">VAR</div>
+        <div class="stat-label">補完対応</div>
+      </div>
     </div>
-    <div class="stat">
-      <div class="stat-num">VAR</div>
-      <div class="stat-label">補完対応</div>
-    </div>
-  </div>
-</main>
+  </main>
 
-<footer>PERSONAL CLI REFERENCE &nbsp;·&nbsp; MIKALULU</footer>
+  <footer>PERSONAL CLI REFERENCE &nbsp;·&nbsp; MIKALULU &nbsp;·&nbsp; <a href="LICENSE.html"
+      style="color:var(--dim);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='#00d4aa'"
+      onmouseout="this.style.color='var(--dim)'">LICENSE</a></footer>
 
-<script>
-// ── animated grid bg ──────────────────────────────────────
-const canvas = document.getElementById('bg');
-const ctx = canvas.getContext('2d');
-let W, H, mouse = { x: -9999, y: -9999 };
+  <script>
+    // ── animated grid bg ──────────────────────────────────────
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+    let W, H, mouse = { x: -9999, y: -9999 };
 
-function resize() {
-  W = canvas.width  = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener('resize', resize);
-window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
-
-const COLS = 28, ROWS = 18;
-const dots = [];
-for (let r = 0; r <= ROWS; r++) {
-  for (let c = 0; c <= COLS; c++) {
-    dots.push({ r, c, phase: Math.random() * Math.PI * 2, speed: 0.3 + Math.random() * 0.4 });
-  }
-}
-
-let t = 0;
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  t += 0.008;
-
-  const cellW = W / COLS, cellH = H / ROWS;
-
-  // horizontal lines
-  for (let r = 0; r <= ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const x1 = c * cellW, y1 = r * cellH;
-      const x2 = (c+1) * cellW;
-      const mx = (x1 + x2) / 2, my = y1;
-      const dx = mx - mouse.x, dy = my - mouse.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const prox = Math.max(0, 1 - dist / 280);
-      const base = 0.04 + Math.sin(t + c * 0.3 + r * 0.5) * 0.015;
-      ctx.strokeStyle = `rgba(0,212,170,${base + prox * 0.25})`;
-      ctx.lineWidth = 0.5 + prox * 1.2;
-      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y1); ctx.stroke();
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
     }
-  }
-  // vertical lines
-  for (let c = 0; c <= COLS; c++) {
-    for (let r = 0; r < ROWS; r++) {
-      const x1 = c * cellW, y1 = r * cellH, y2 = (r+1) * cellH;
-      const mx = x1, my = (y1+y2)/2;
-      const dx = mx - mouse.x, dy = my - mouse.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const prox = Math.max(0, 1 - dist / 280);
-      const base = 0.04 + Math.sin(t + c * 0.5 + r * 0.3) * 0.015;
-      ctx.strokeStyle = `rgba(0,212,170,${base + prox * 0.25})`;
-      ctx.lineWidth = 0.5 + prox * 1.2;
-      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1, y2); ctx.stroke();
+    resize();
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+    const COLS = 28, ROWS = 18;
+    const dots = [];
+    for (let r = 0; r <= ROWS; r++) {
+      for (let c = 0; c <= COLS; c++) {
+        dots.push({ r, c, phase: Math.random() * Math.PI * 2, speed: 0.3 + Math.random() * 0.4 });
+      }
     }
-  }
 
-  // dot intersections
-  for (let r = 0; r <= ROWS; r++) {
-    for (let c = 0; c <= COLS; c++) {
-      const x = c * cellW, y = r * cellH;
-      const dx = x - mouse.x, dy = y - mouse.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const prox = Math.max(0, 1 - dist / 200);
-      const pulse = 0.3 + Math.sin(t * 1.5 + c * 0.4 + r * 0.6) * 0.2;
-      const alpha = 0.08 + pulse * 0.1 + prox * 0.6;
-      const radius = 1 + prox * 3;
-      ctx.fillStyle = `rgba(0,212,170,${alpha})`;
-      ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+    let t = 0;
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      t += 0.008;
+
+      const cellW = W / COLS, cellH = H / ROWS;
+
+      // horizontal lines
+      for (let r = 0; r <= ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const x1 = c * cellW, y1 = r * cellH;
+          const x2 = (c + 1) * cellW;
+          const mx = (x1 + x2) / 2, my = y1;
+          const dx = mx - mouse.x, dy = my - mouse.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const prox = Math.max(0, 1 - dist / 280);
+          const base = 0.04 + Math.sin(t + c * 0.3 + r * 0.5) * 0.015;
+          ctx.strokeStyle = `rgba(0,212,170,${base + prox * 0.25})`;
+          ctx.lineWidth = 0.5 + prox * 1.2;
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y1); ctx.stroke();
+        }
+      }
+      // vertical lines
+      for (let c = 0; c <= COLS; c++) {
+        for (let r = 0; r < ROWS; r++) {
+          const x1 = c * cellW, y1 = r * cellH, y2 = (r + 1) * cellH;
+          const mx = x1, my = (y1 + y2) / 2;
+          const dx = mx - mouse.x, dy = my - mouse.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const prox = Math.max(0, 1 - dist / 280);
+          const base = 0.04 + Math.sin(t + c * 0.5 + r * 0.3) * 0.015;
+          ctx.strokeStyle = `rgba(0,212,170,${base + prox * 0.25})`;
+          ctx.lineWidth = 0.5 + prox * 1.2;
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1, y2); ctx.stroke();
+        }
+      }
+
+      // dot intersections
+      for (let r = 0; r <= ROWS; r++) {
+        for (let c = 0; c <= COLS; c++) {
+          const x = c * cellW, y = r * cellH;
+          const dx = x - mouse.x, dy = y - mouse.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const prox = Math.max(0, 1 - dist / 200);
+          const pulse = 0.3 + Math.sin(t * 1.5 + c * 0.4 + r * 0.6) * 0.2;
+          const alpha = 0.08 + pulse * 0.1 + prox * 0.6;
+          const radius = 1 + prox * 3;
+          ctx.fillStyle = `rgba(0,212,170,${alpha})`;
+          ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // mouse glow
+      const g = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 300);
+      g.addColorStop(0, 'rgba(0,212,170,0.06)');
+      g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+
+      requestAnimationFrame(draw);
     }
-  }
+    draw();
 
-  // mouse glow
-  const g = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 300);
-  g.addColorStop(0, 'rgba(0,212,170,0.06)');
-  g.addColorStop(1, 'transparent');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-
-  requestAnimationFrame(draw);
-}
-draw();
-
-// ── counter animation ──────────────────────────────────────
-function animCount(el, target, suffix='') {
-  let cur = 0;
-  const step = Math.ceil(target / 40);
-  const id = setInterval(() => {
-    cur = Math.min(cur + step, target);
-    el.innerHTML = cur + suffix;
-    if (cur >= target) clearInterval(id);
-  }, 30);
-}
-const io = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      animCount(document.getElementById('sn-sheets'), 4);
-      animCount(document.getElementById('sn-sections'), 36);
-      io.disconnect();
+    // ── counter animation ──────────────────────────────────────
+    function animCount(el, target, suffix = '') {
+      let cur = 0;
+      const step = Math.ceil(target / 40);
+      const id = setInterval(() => {
+        cur = Math.min(cur + step, target);
+        el.innerHTML = cur + suffix;
+        if (cur >= target) clearInterval(id);
+      }, 30);
     }
-  });
-});
-io.observe(document.querySelector('.stats'));
-</script>
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          animCount(document.getElementById('sn-sheets'), 4);
+          animCount(document.getElementById('sn-sections'), 36);
+          io.disconnect();
+        }
+      });
+    });
+    io.observe(document.querySelector('.stats'));
+  </script>
 </body>
+
 </html>
